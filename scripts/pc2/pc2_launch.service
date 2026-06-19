@@ -7,7 +7,7 @@ Wants=docker.service bluetooth.service
 [Service]
 Type=simple
 User=robotx
-# autospawn.sh is symlinked here by scripts/pc2/install.sh
+# pc2_joylaunch.sh is symlinked here by scripts/pc2/install.sh
 ExecStart=/usr/local/bin/pc2_joylaunch.sh
 # On stop, systemd sends SIGTERM which triggers the cleanup trap in autospawn.sh
 # (stops the joy container). Give it time to finish before force-killing.

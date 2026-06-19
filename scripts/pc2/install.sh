@@ -9,8 +9,8 @@ SERVICE_FILE="$REPO_ROOT/scripts/pc2/pc2_launch.service"
 
 echo "Repo root: $REPO_ROOT"
 
-# Symlink autospawn.sh so the service file path stays static across repo moves
-echo "Symlinking host.autospawn.sh -> /usr/local/bin/pc2_launch.sh"
+# Symlink pc2_joylaunch.sh so the service file path stays static across repo moves
+echo "Symlinking pc2_joylaunch.sh -> /usr/local/bin/pc2_joylaunch.sh"
 sudo ln -sf "$REPO_ROOT/scripts/pc2/pc2_joylaunch.sh" /usr/local/bin/pc2_joylaunch.sh
 
 echo "Installing pc2_launch.service"
