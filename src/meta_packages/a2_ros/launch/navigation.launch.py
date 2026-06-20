@@ -175,6 +175,9 @@ def generate_launch_description():
             executable='pathFollower',
             name='pathFollower',
             output='screen',
+            remappings=[
+                ('/nav_vel_cmd', '/nav_vel'),  # feed twist_mux's nav input (prio 10)
+            ],
             parameters=[{
                 'sensorOffsetX':    0.0,
                 'sensorOffsetY':    0.0,
