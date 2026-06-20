@@ -46,7 +46,8 @@ Workspace:
   log                Tail the latest colcon build log
 
 Robot:
-  sim   [--rviz] [--dlio] [--scene <file>]  Launch MuJoCo simulation
+  sim   [--rviz] [--dlio] [--headless] [--scene <file>]  Launch MuJoCo simulation
+                     --headless runs with no MuJoCo viewer (visualize in RViz/Foxglove)
                      scenes: scene.xml (default), scene_flat.xml, scene_terrain.xml,
                              scene_obstacles.xml, scene_maze.xml, scene_test_meshes.xml
   walk               Command robot to walk    (mode=4)
@@ -83,6 +84,7 @@ EOF
 # Separate flags from positional args
 RVIZ=false
 DLIO=false
+HEADLESS=false
 YES=false
 SCENE=""
 JOBS=""
@@ -91,6 +93,7 @@ while [[ $# -gt 0 ]]; do
     case "$1" in
         --rviz) RVIZ=true; shift ;;
         --dlio) DLIO=true; shift ;;
+        --headless) HEADLESS=true; shift ;;
         --yes)  YES=true; shift ;;
         -j|--jobs)
             if [[ -z "${2:-}" ]]; then error "$1 requires a value (e.g. -j 8)"; exit 1; fi
@@ -148,7 +151,7 @@ case "$CMD" in
         tail -f "$LATEST"
         ;;
     sim)
-        SIM_ARGS=(rviz:=$RVIZ dlio:=$DLIO)
+        SIM_ARGS=(rviz:=$RVIZ dlio:=$DLIO headless:=$HEADLESS)
         [ -n "$SCENE" ] && SIM_ARGS+=(scene:="$SCENE")
         ros2 launch a2_ros sim.launch.py "${SIM_ARGS[@]}"
         ;;
