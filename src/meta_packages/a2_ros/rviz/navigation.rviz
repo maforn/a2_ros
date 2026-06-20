@@ -5,7 +5,7 @@ Panels:
     Property Tree Widget:
       Expanded: ~
       Splitter Ratio: 0.800000011920929
-    Tree Height: 355
+    Tree Height: 443
   - Class: rviz_common/Selection
     Name: Selection
   - Class: rviz_common/Tool Properties
@@ -448,7 +448,6 @@ Visualization Manager:
         History Policy: Keep Last
         Reliability Policy: Reliable
         Value: goalpoint
-    - Class: teleop_rviz_plugin/TeleopTool
   Transformation:
     Current:
       Class: rviz_default_plugins/TF
