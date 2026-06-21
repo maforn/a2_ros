@@ -24,7 +24,7 @@
           topic="/cmd_vel"
           linear_x="0.0"
           angular_z="0.5"
-          duration_sec="5.0" />
+          duration_sec="3.7" />
 
         <!-- Go straight -->
         <PublishTwist
@@ -38,7 +38,7 @@
           topic="/cmd_vel"
           linear_x="0.0"
           angular_z="0.5"
-          duration_sec="5.0" />
+          duration_sec="3.7" />
       </Sequence>
     </Repeat>
   </BehaviorTree>
