@@ -6,7 +6,7 @@
 
 #include "behaviortree_cpp/action_node.h"
 #include "behaviortree_ros2/ros_node_params.hpp"
-#include "geometry_msgs/msg/twist.hpp"
+#include "geometry_msgs/msg/twist_stamped.hpp"
 #include "rclcpp/rclcpp.hpp"
 
 namespace a2_bt
@@ -38,7 +38,7 @@ public:
 
 private:
   rclcpp::Node::SharedPtr node_;
-  rclcpp::Publisher<geometry_msgs::msg::Twist>::SharedPtr pub_;
+  rclcpp::Publisher<geometry_msgs::msg::TwistStamped>::SharedPtr pub_;
   std::chrono::steady_clock::time_point start_time_;
   double duration_sec_{1.0};
 };
