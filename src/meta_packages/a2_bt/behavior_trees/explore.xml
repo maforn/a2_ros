@@ -1,19 +1,16 @@
 <root BTCPP_format="4">
   <!--
-    Exploración autónoma con terminación automática.
+    Autonomous exploration mission with home return on timeout.
 
-    Termina cuando ocurre cualquiera de estas tres cosas:
-      1. TARE publica exploration_finish=true  → SUCCESS
-      2. Pasa timeout_sec sin que termine      → FAILURE
-      3. TARE falla / no responde              → FAILURE (mismo que timeout)
+    Cases:
+      - WaitForExplorationFinish SUCCESS (TARE done)  → mission complete.
+      - WaitForExplorationFinish FAILURE (timeout)    → NavigateToPose returns robot to home.
 
-    Ajusta timeout_sec según el área a explorar. -1.0 = sin límite.
-
-    Uso:
+    Usage:
       ros2 action send_goal /bt_action_server behaviortree_ros2/action/ExecuteTree \
         "{target_tree: 'Explore', payload: 'explore.xml'}"
 
-    Estado en tiempo real:
+    Live status:
       ros2 topic echo /bt/exploration_status
   -->
   <BehaviorTree ID="Explore">
@@ -21,10 +18,23 @@
 
       <StartExploration start_topic="/start_exploration" />
 
-      <WaitForExplorationFinish
-        finish_topic="exploration_finish"
-        status_topic="bt/exploration_status"
-        timeout_sec="300.0" />
+      <Fallback>
+
+        <!-- Normal case: wait for TARE to finish exploration -->
+        <WaitForExplorationFinish
+          finish_topic="exploration_finish"
+          status_topic="bt/exploration_status"
+          timeout_sec="300.0" />
+
+        <!-- Timeout fallback: navigate back to home -->
+        <NavigateToPose
+          goal_x="0.0"
+          goal_y="0.0"
+          frame_id="map"
+          goal_topic="/goal_point"
+          timeout_sec="120.0" />
+
+      </Fallback>
 
     </Sequence>
   </BehaviorTree>
