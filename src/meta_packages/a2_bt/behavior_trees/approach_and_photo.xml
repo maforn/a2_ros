@@ -1,0 +1,54 @@
+<root BTCPP_format="4">
+  <!--
+    Approach and photograph:
+      1. Boot FSM (stand → unlock → walk)
+      2. GetObjectPose  — lock onto first detection, TF-transform to map,
+                          write a safe approach point to {target_pose}
+      3. NavigateToPose — FAR Planner drives to {target_pose}
+      4. Stop, save annotated photo, sit
+
+    Tune:
+      class_id      : YOLO class to find, e.g. "clock" (empty = any)
+      safe_distance : metres to stop from the object (GetObjectPose)
+      timeout_sec   : NavigateToPose timeout
+      output_path   : writable path for the photo
+
+    Requires: a2 sim + a2 detect + a2 explore (FAR Planner) + a2 bt
+  -->
+  <BehaviorTree ID="ApproachAndPhoto">
+    <Sequence>
+
+      <!-- 1. Boot -->
+      <SetMode mode="2" wait_for_sec="3.0" />
+      <SetMode mode="3" wait_for_sec="3.0" />
+      <SetMode mode="4" wait_for_sec="1.0" />
+
+      <!-- 2. Find object and compute safe goal pose -->
+      <GetObjectPose
+        class_id=""
+        detection_topic="/detection_info"
+        safe_distance="1.0"
+        output_frame="map"
+        timeout_sec="15.0"
+        goal_pose="{target_pose}" />
+
+      <!-- 3. Navigate to the goal pose via FAR Planner -->
+      <NavigateToPose
+        goal_pose="{target_pose}"
+        frame_id="map"
+        goal_topic="/goal_point"
+        timeout_sec="60.0" />
+
+      <!-- 4. Stop and photograph -->
+      <SetMode mode="3" wait_for_sec="1.0" />
+      <SaveImage
+        image_topic="/detections_in_image"
+        output_path="/tmp/detection.jpg"
+        timeout_sec="5.0" />
+
+      <!-- 5. Sit -->
+      <SetMode mode="1" wait_for_sec="3.0" />
+
+    </Sequence>
+  </BehaviorTree>
+</root>
