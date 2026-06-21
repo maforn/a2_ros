@@ -1,0 +1,45 @@
+<root BTCPP_format="4">
+  <!--
+    Square-ish loop: linear → turn → linear → turn, repeated 20 times.
+
+    Tune per segment:
+      linear_x     : forward speed [m/s]
+      angular_z    : turn rate [rad/s]
+      duration_sec : how long to hold each command [s]
+
+    90° turn example: angular_z=0.5 rad/s for 3.14 s ≈ π/2 rad
+  -->
+  <BehaviorTree ID="TwistLoop">
+    <Repeat num_cycles="20">
+      <Sequence>
+        <!-- Go straight -->
+        <PublishTwist
+          topic="/cmd_vel"
+          linear_x="0.5"
+          angular_z="0.0"
+          duration_sec="3.0" />
+
+        <!-- Turn ~90° left -->
+        <PublishTwist
+          topic="/cmd_vel"
+          linear_x="0.0"
+          angular_z="0.5"
+          duration_sec="3.14" />
+
+        <!-- Go straight -->
+        <PublishTwist
+          topic="/cmd_vel"
+          linear_x="0.5"
+          angular_z="0.0"
+          duration_sec="3.0" />
+
+        <!-- Turn ~90° left -->
+        <PublishTwist
+          topic="/cmd_vel"
+          linear_x="0.0"
+          angular_z="0.5"
+          duration_sec="3.14" />
+      </Sequence>
+    </Repeat>
+  </BehaviorTree>
+</root>

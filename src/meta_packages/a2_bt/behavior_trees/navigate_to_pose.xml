@@ -1,0 +1,22 @@
+<root BTCPP_format="4">
+  <!--
+    Navigate to a single pose.
+    Edit x/y/yaw/frame_id directly, or pass this file via the action payload
+    and set values on the blackboard before sending the goal.
+  -->
+  <BehaviorTree ID="GoToPose">
+    <Sequence>
+      <CreatePose
+        x="0.0"
+        y="0.0"
+        yaw="0.0"
+        frame_id="map"
+        pose="{goal_pose}" />
+      <NavigateToPose
+        goal_pose="{goal_pose}"
+        frame_id="map"
+        goal_topic="/goal_point"
+        timeout_sec="60.0" />
+    </Sequence>
+  </BehaviorTree>
+</root>
