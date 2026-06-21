@@ -207,6 +207,18 @@ a2 bag play bag_<timestamp>_run1                  # from the bag dir
 a2 bag play bag_<timestamp>_run1 --clock --pause  # publish /clock, start paused
 ```
 
+**Visualize playback** — to view the robot and sensors in RViz during playback, launch the visualization helper in another terminal:
+```bash
+a2 view
+```
+This starts `robot_state_publisher` and RViz with `use_sim_time:=true` so that timestamps align with the bag's published clock.
+
+Alternatively, you can visualize in Foxglove Studio by starting the Foxglove Bridge:
+```bash
+a2 foxglove
+```
+
+
 ## 🎮 Gamepad
 
 > These controls are for driving the **real robot**.
