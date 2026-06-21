@@ -9,6 +9,9 @@
 #include "a2_bt/create_pose.hpp"
 #include "a2_bt/navigate_to_pose_action.hpp"
 #include "a2_bt/publish_twist.hpp"
+#include "a2_bt/start_exploration.hpp"
+#include "a2_bt/wait_for_exploration_finish.hpp"
+#include "a2_bt/is_exploration_finished.hpp"
 
 class A2BtExecutor : public BT::TreeExecutionServer
 {
@@ -28,6 +31,9 @@ protected:
     factory.registerNodeType<a2_bt::CreatePose>("CreatePose");
     factory.registerNodeType<a2_bt::NavigateToPoseAction>("NavigateToPose", params);
     factory.registerNodeType<a2_bt::PublishTwist>("PublishTwist", params);
+    factory.registerNodeType<a2_bt::StartExploration>("StartExploration", params);
+    factory.registerNodeType<a2_bt::WaitForExplorationFinish>("WaitForExplorationFinish", params);
+    factory.registerNodeType<a2_bt::IsExplorationFinished>("IsExplorationFinished", params);
   }
 
   // If payload is a filename, resolve it against the hardcoded trees directory

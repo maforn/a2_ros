@@ -1,0 +1,31 @@
+<root BTCPP_format="4">
+  <!--
+    Exploración autónoma con terminación automática.
+
+    Termina cuando ocurre cualquiera de estas tres cosas:
+      1. TARE publica exploration_finish=true  → SUCCESS
+      2. Pasa timeout_sec sin que termine      → FAILURE
+      3. TARE falla / no responde              → FAILURE (mismo que timeout)
+
+    Ajusta timeout_sec según el área a explorar. -1.0 = sin límite.
+
+    Uso:
+      ros2 action send_goal /bt_action_server behaviortree_ros2/action/ExecuteTree \
+        "{target_tree: 'Explore', payload: 'explore.xml'}"
+
+    Estado en tiempo real:
+      ros2 topic echo /bt/exploration_status
+  -->
+  <BehaviorTree ID="Explore">
+    <Sequence>
+
+      <StartExploration start_topic="/start_exploration" />
+
+      <WaitForExplorationFinish
+        finish_topic="exploration_finish"
+        status_topic="bt/exploration_status"
+        timeout_sec="300.0" />
+
+    </Sequence>
+  </BehaviorTree>
+</root>

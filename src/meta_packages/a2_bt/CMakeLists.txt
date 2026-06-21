@@ -32,9 +32,12 @@ macro(bt_plugin target source)
 endmacro()
 
 # ── Plugins ──────────────────────────────────────────────────────────────────
-bt_plugin(a2_bt_create_pose_plugin      plugins/create_pose.cpp)
-bt_plugin(a2_bt_navigate_to_pose_plugin plugins/navigate_to_pose_action.cpp)
-bt_plugin(a2_bt_publish_twist_plugin    plugins/publish_twist.cpp)
+bt_plugin(a2_bt_create_pose_plugin                 plugins/create_pose.cpp)
+bt_plugin(a2_bt_navigate_to_pose_plugin            plugins/navigate_to_pose_action.cpp)
+bt_plugin(a2_bt_publish_twist_plugin               plugins/publish_twist.cpp)
+bt_plugin(a2_bt_start_exploration_plugin           plugins/start_exploration.cpp)
+bt_plugin(a2_bt_wait_for_exploration_finish_plugin plugins/wait_for_exploration_finish.cpp)
+bt_plugin(a2_bt_is_exploration_finished_plugin     plugins/is_exploration_finished.cpp)
 
 # ── Executor node ─────────────────────────────────────────────────────────────
 add_executable(bt_executor src/bt_executor.cpp)
@@ -46,12 +49,18 @@ target_link_libraries(bt_executor
   a2_bt_create_pose_plugin
   a2_bt_navigate_to_pose_plugin
   a2_bt_publish_twist_plugin
+  a2_bt_start_exploration_plugin
+  a2_bt_wait_for_exploration_finish_plugin
+  a2_bt_is_exploration_finished_plugin
 )
 
 install(TARGETS
   a2_bt_create_pose_plugin
   a2_bt_navigate_to_pose_plugin
   a2_bt_publish_twist_plugin
+  a2_bt_start_exploration_plugin
+  a2_bt_wait_for_exploration_finish_plugin
+  a2_bt_is_exploration_finished_plugin
   bt_executor
   ARCHIVE DESTINATION lib
   LIBRARY DESTINATION lib
