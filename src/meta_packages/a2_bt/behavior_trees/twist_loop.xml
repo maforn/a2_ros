@@ -1,45 +1,58 @@
 <root BTCPP_format="4">
   <!--
-    Square-ish loop: linear → turn → linear → turn, repeated 20 times.
+    Square walk: boot FSM → walk a square → stop and sit.
+
+    FSM modes:
+      1 STAND_DOWN    (sit)
+      2 STAND_UP      (stand)
+      3 BALANCE_STAND (unlock / stop)
+      4 VELOCITY_MOVE (walk)
+
+    wait_for_sec gives the robot time to physically complete each motion
+    before the BT proceeds.
 
     Tune per segment:
-      linear_x     : forward speed [m/s]
-      angular_z    : turn rate [rad/s]
-      duration_sec : how long to hold each command [s]
+      linear_x       : forward speed [m/s]
+      angular_z      : turn rate [rad/s]
+      duration_sec   : how long to hold each command [s]
+      wait_after_sec : settling time after stop before next command [s]
 
-    90° turn example: angular_z=0.5 rad/s for 3.14 s ≈ π/2 rad
+    90° turn: angular_z=0.5 rad/s → (π/2)/0.5 ≈ 3.14 s in theory, but the
+    RL policy undershoots; 3.7 s is the empirical value.
   -->
   <BehaviorTree ID="TwistLoop">
-    <Repeat num_cycles="20">
-      <Sequence>
-        <!-- Go straight -->
-        <PublishTwist
-          topic="/cmd_vel"
-          linear_x="0.5"
-          angular_z="0.0"
-          duration_sec="3.0" />
+    <Sequence>
 
-        <!-- Turn ~90° left -->
-        <PublishTwist
-          topic="/cmd_vel"
-          linear_x="0.0"
-          angular_z="0.5"
-          duration_sec="3.7" />
+      <!-- 1. Boot: bring the robot up through the FSM -->
+      <SetMode mode="2" wait_for_sec="3.0" />
+      <SetMode mode="3" wait_for_sec="3.0" />
+      <SetMode mode="4" wait_for_sec="1.0" />
 
-        <!-- Go straight -->
-        <PublishTwist
-          topic="/cmd_vel"
-          linear_x="0.5"
-          angular_z="0.0"
-          duration_sec="3.0" />
+      <!-- 2. Square: 4 sides × (straight + turn 90°) -->
+      <Repeat num_cycles="4">
+        <Sequence>
+          <!-- Go straight -->
+          <PublishTwist
+            topic="/cmd_vel"
+            linear_x="0.5"
+            angular_z="0.0"
+            duration_sec="3.0"
+            wait_after_sec="0.5" />
 
-        <!-- Turn ~90° left -->
-        <PublishTwist
-          topic="/cmd_vel"
-          linear_x="0.0"
-          angular_z="0.5"
-          duration_sec="3.7" />
-      </Sequence>
-    </Repeat>
+          <!-- Turn ~90° left -->
+          <PublishTwist
+            topic="/cmd_vel"
+            linear_x="0.0"
+            angular_z="0.5"
+            duration_sec="7.3"
+            wait_after_sec="0.5" />
+        </Sequence>
+      </Repeat>
+
+      <!-- 3. Shutdown: stop moving then sit -->
+      <SetMode mode="3" wait_for_sec="1.0" />
+      <SetMode mode="1" wait_for_sec="3.0" />
+
+    </Sequence>
   </BehaviorTree>
 </root>

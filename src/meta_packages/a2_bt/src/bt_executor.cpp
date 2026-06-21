@@ -9,6 +9,9 @@
 #include "a2_bt/create_pose.hpp"
 #include "a2_bt/navigate_to_pose_action.hpp"
 #include "a2_bt/publish_twist.hpp"
+#include "a2_bt/set_mode.hpp"
+#include "a2_bt/get_object_pose.hpp"
+#include "a2_bt/save_image.hpp"
 
 class A2BtExecutor : public BT::TreeExecutionServer
 {
@@ -28,6 +31,9 @@ protected:
     factory.registerNodeType<a2_bt::CreatePose>("CreatePose");
     factory.registerNodeType<a2_bt::NavigateToPoseAction>("NavigateToPose", params);
     factory.registerNodeType<a2_bt::PublishTwist>("PublishTwist", params);
+    factory.registerNodeType<a2_bt::SetMode>("SetMode", params);
+    factory.registerNodeType<a2_bt::GetObjectPose>("GetObjectPose", params);
+    factory.registerNodeType<a2_bt::SaveImage>("SaveImage", params);
   }
 
   // If payload is a filename, resolve it against the hardcoded trees directory
