@@ -50,6 +50,8 @@ Robot:
                      --headless runs with no MuJoCo viewer (visualize in RViz/Foxglove)
                      scenes: scene.xml (default), scene_flat.xml, scene_terrain.xml,
                              scene_obstacles.xml, scene_maze.xml, scene_test_meshes.xml
+  view  [--rviz]     Launch robot_state_publisher + RViz with use_sim_time:=true
+                     (run in another terminal during bag playback to visualize robot/sensors)
   walk               Command robot to walk    (mode=4)
   stop               Stop moving, keep balance (mode=3)
   unlock             Command robot to unlock  (mode=3)
@@ -154,6 +156,35 @@ case "$CMD" in
         SIM_ARGS=(rviz:=$RVIZ dlio:=$DLIO headless:=$HEADLESS)
         [ -n "$SCENE" ] && SIM_ARGS+=(scene:="$SCENE")
         ros2 launch a2_ros sim.launch.py "${SIM_ARGS[@]}"
+        ;;
+    view)
+        if [ "$RVIZ" = "false" ]; then RVIZ=true; fi
+        bag_val=""
+        clock_val="true"
+        pause_val="false"
+        extra_launch_args=()
+
+        for arg in "${ARGS[@]:1}"; do
+            if [[ "$arg" == "--clock" ]]; then
+                clock_val="true"
+            elif [[ "$arg" == "--pause" ]]; then
+                pause_val="true"
+            elif [[ "$arg" == "--no-clock" ]]; then
+                clock_val="false"
+            elif [[ "$arg" == *":="* ]]; then
+                extra_launch_args+=("$arg")
+            else
+                bag_val="$arg"
+            fi
+        done
+
+        LAUNCH_ARGS=(rviz:=$RVIZ)
+        if [ -n "$bag_val" ]; then
+            LAUNCH_ARGS+=(bag:="$bag_val" clock:="$clock_val" pause:="$pause_val")
+        fi
+        LAUNCH_ARGS+=("${extra_launch_args[@]}")
+
+        ros2 launch a2_ros view_bag.launch.py "${LAUNCH_ARGS[@]}"
         ;;
     walk)
         _set_mode 4
