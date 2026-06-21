@@ -1,0 +1,2 @@
+export DISPLAY=:12
+rviz2
