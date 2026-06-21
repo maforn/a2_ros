@@ -27,3 +27,6 @@ external/gscam2/
 
 # untracked
 untracked/
+
+# 
+scripts/build_workspace.sh
