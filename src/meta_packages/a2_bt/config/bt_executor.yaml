@@ -1,0 +1,8 @@
+bt_action_server:
+  ros__parameters:
+    action_name: "bt_action_server"   # ExecuteTree action name
+    tick_frequency: 10                # BT tick rate [Hz]
+    groot2_port: 1667                 # Groot2 live monitor port
+    ros_plugins_timeout: 5000         # ms to wait for ROS action servers
+    behavior_trees:
+      - a2_bt/behavior_trees          # package-relative directory of .xml files
