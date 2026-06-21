@@ -12,7 +12,7 @@ from ament_index_python.packages import get_package_share_directory
 from launch import LaunchDescription
 from launch.actions import DeclareLaunchArgument
 from launch.conditions import IfCondition
-from launch.substitutions import LaunchConfiguration, PathJoinSubstitution
+from launch.substitutions import LaunchConfiguration, PathJoinSubstitution, PythonExpression
 from launch_ros.actions import Node
 from launch_ros.parameter_descriptions import ParameterValue
 from launch_ros.substitutions import FindPackageShare
@@ -31,6 +31,13 @@ def generate_launch_description():
     pointcloud_queue_size = LaunchConfiguration('pointcloud_queue_size')
     map_crop_enabled = LaunchConfiguration('map_crop_enabled')
     rviz = LaunchConfiguration('rviz')
+
+    # In simulation (use_sim_time is true), disable online IMU calibration.
+    # The robot moves immediately in sim/bags, which corrupts static calibration.
+    # Sim has perfect Z gravity and zero bias, so calibration is unnecessary.
+    imu_calibration = PythonExpression([
+        'False if "', use_sim_time, '" == "true" or "', use_sim_time, '" == "True" else True'
+    ])
 
     dlio_yaml = PathJoinSubstitution([dlio_pkg, 'cfg', 'dlio.yaml'])
     dlio_params = PathJoinSubstitution([dlio_pkg, 'cfg', 'params.yaml'])
@@ -67,6 +74,7 @@ def generate_launch_description():
             a2_params,
             {
                 'use_sim_time': ParameterValue(use_sim_time, value_type=bool),
+                'imu/calibration': ParameterValue(imu_calibration, value_type=bool),
                 'odom/num_threads': ParameterValue(num_threads, value_type=int),
                 'pointcloud/queueSize': ParameterValue(pointcloud_queue_size, value_type=int),
                 'dynamic_filter/enabled': ParameterValue(dynamic_filter_enabled, value_type=bool),
