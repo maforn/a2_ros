@@ -50,3 +50,9 @@
 [submodule "external/resple"]
 	path = external/resple
 	url = git@github.com:ETHZ-RobotX/RESPLE.git
+[submodule "external/behaviortree_cpp"]
+	path = external/behaviortree_cpp
+	url = https://github.com/BehaviorTree/BehaviorTree.CPP.git
+[submodule "external/behaviortree_ros2"]
+	path = external/behaviortree_ros2
+	url = git@github.com:BehaviorTree/BehaviorTree.ROS2.git
