@@ -24,7 +24,7 @@
 	url = git@github.com:ETHZ-RobotX/navigation_ext_ros2.git
 [submodule "external/tare_planner"]
 	path = external/tare_planner
-	url = git@github.com:ETHZ-RobotX/tare_planner.git
+	url = git@github.com:paureverte/tare_planner.git
 [submodule "src/core/a2_sim_utils"]
 	path = src/core/a2_sim_utils
 	url = git@github.com:ETHZ-RobotX/a2_sim_utils.git
