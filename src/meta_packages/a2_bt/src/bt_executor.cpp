@@ -16,6 +16,7 @@
 #include "a2_bt/start_exploration.hpp"
 #include "a2_bt/wait_for_exploration_finish.hpp"
 #include "a2_bt/is_exploration_finished.hpp"
+#include "a2_bt/save_pose.hpp"
 
 class A2BtExecutor : public BT::TreeExecutionServer
 {
@@ -42,6 +43,7 @@ protected:
     factory.registerNodeType<a2_bt::StartExploration>("StartExploration", params);
     factory.registerNodeType<a2_bt::WaitForExplorationFinish>("WaitForExplorationFinish", params);
     factory.registerNodeType<a2_bt::IsExplorationFinished>("IsExplorationFinished", params);
+    factory.registerNodeType<a2_bt::SavePose>("SavePose", params);
   }
 
   // If payload is a filename, resolve it against the hardcoded trees directory

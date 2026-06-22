@@ -1,10 +1,15 @@
 <root BTCPP_format="4">
   <!--
-    Autonomous exploration mission with home return on timeout.
+    Autonomous exploration mission with home return on completion or timeout.
 
-    Cases:
-      - WaitForExplorationFinish SUCCESS (TARE done)  → mission complete.
-      - WaitForExplorationFinish FAILURE (timeout)    → NavigateToPose returns robot to home.
+    Flow:
+      1. StartExploration  — triggers TARE via /start_exploration
+      2. SavePose          — captures current map-frame pose from DLIO as {home_pose}
+      3. Parallel phase    — runs WaitForExplorationFinish alongside placeholder tasks:
+           • SUCCESS (TARE done)    → Parallel succeeds → AlwaysSuccess passes through
+           • FAILURE (timeout)      → Parallel fails    → AlwaysSuccess absorbs failure
+         Either way, the outer Sequence continues.
+      4. NavigateToPose    — returns robot to the saved {home_pose}
 
     Usage:
       ros2 action send_goal /bt_action_server behaviortree_ros2/action/ExecuteTree \
@@ -18,23 +23,34 @@
 
       <StartExploration start_topic="/start_exploration" />
 
-      <Fallback>
+      <!-- Capture starting position in map frame (DLIO) before exploring -->
+      <SavePose
+        pose_topic="dlio/odom_node/pose"
+        timeout_sec="5.0"
+        pose="{home_pose}" />
 
-        <!-- Normal case: wait for TARE to finish exploration -->
-        <WaitForExplorationFinish
-          finish_topic="exploration_finish"
-          status_topic="bt/exploration_status"
-          timeout_sec="300.0" />
+      <!-- Exploration phase: exits when TARE finishes (SUCCESS) or times out (FAILURE).
+           AlwaysSuccess wraps the Parallel so the Sequence always proceeds to NavigateToPose. -->
+      <AlwaysSuccess>
+        <Parallel success_count="1" failure_count="1">
 
-        <!-- Timeout fallback: navigate back to home -->
-        <NavigateToPose
-          goal_x="0.0"
-          goal_y="0.0"
-          frame_id="map"
-          goal_topic="/goal_point"
-          timeout_sec="120.0" />
+          <WaitForExplorationFinish
+            finish_topic="exploration_finish"
+            status_topic="bt/exploration_status"
+            timeout_sec="300.0" />
 
-      </Fallback>
+          <!-- Placeholder: future tasks to run in parallel during exploration -->
+          <AlwaysRunning />
+
+        </Parallel>
+      </AlwaysSuccess>
+
+      <!-- Navigate back to saved starting position -->
+      <NavigateToPose
+        goal_pose="{home_pose}"
+        frame_id="map"
+        goal_topic="/goal_point"
+        timeout_sec="120.0" />
 
     </Sequence>
   </BehaviorTree>

@@ -64,6 +64,7 @@ bt_plugin(a2_bt_call_trigger_service_plugin        plugins/call_trigger_service.
 bt_plugin(a2_bt_start_exploration_plugin           plugins/start_exploration.cpp)
 bt_plugin(a2_bt_wait_for_exploration_finish_plugin plugins/wait_for_exploration_finish.cpp)
 bt_plugin(a2_bt_is_exploration_finished_plugin     plugins/is_exploration_finished.cpp)
+bt_plugin(a2_bt_save_pose_plugin                   plugins/save_pose.cpp)
 
 # ── Executor node ─────────────────────────────────────────────────────────────
 add_executable(bt_executor src/bt_executor.cpp)
@@ -82,6 +83,7 @@ target_link_libraries(bt_executor
   a2_bt_start_exploration_plugin
   a2_bt_wait_for_exploration_finish_plugin
   a2_bt_is_exploration_finished_plugin
+  a2_bt_save_pose_plugin
 )
 
 install(TARGETS
@@ -95,6 +97,7 @@ install(TARGETS
   a2_bt_start_exploration_plugin
   a2_bt_wait_for_exploration_finish_plugin
   a2_bt_is_exploration_finished_plugin
+  a2_bt_save_pose_plugin
   bt_executor
   ARCHIVE DESTINATION lib
   LIBRARY DESTINATION lib
