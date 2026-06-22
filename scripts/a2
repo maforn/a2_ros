@@ -105,6 +105,7 @@ Robot:
                      --headless runs with no MuJoCo viewer (visualize in RViz/Foxglove)
                      scenes: scene.xml (default), scene_flat.xml, scene_terrain.xml,
                              scene_obstacles.xml, scene_maze.xml, scene_test_meshes.xml
+  nuc   [--rviz]     Launch real-robot hardware (NUC): both lidars + robot_state_publisher
   view  [--rviz]     Launch robot_state_publisher + RViz with use_sim_time:=true
                      (run in another terminal during bag playback to visualize robot/sensors)
   walk               Command robot to walk    (mode=4)
@@ -226,6 +227,9 @@ case "$CMD" in
         SIM_ARGS=(rviz:=$RVIZ dlio:=$DLIO headless:=$HEADLESS)
         [ -n "$SCENE" ] && SIM_ARGS+=(scene:="$SCENE")
         _run sim ros2 launch a2_ros sim.launch.py "${SIM_ARGS[@]}"
+        ;;
+    nuc)
+        ros2 launch a2_ros nuc.launch.py rviz:=$RVIZ
         ;;
     view)
         if [ "$RVIZ" = "false" ]; then RVIZ=true; fi

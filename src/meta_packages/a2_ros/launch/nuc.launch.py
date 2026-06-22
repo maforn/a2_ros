@@ -3,7 +3,7 @@ Full A2 real-robot launch.
 
 Starts:
   - a2_unitree_bridge  : bridge node (publishes /joint_states and /imu/data from hardware)
-  - hesai_ros_driver   : Hesai LiDAR driver (front lidar by default)
+  - hesai_ros_driver   : Hesai LiDAR driver (front + rear lidars)
   - joy_node           : reads gamepad from /dev/input/js0
   - teleop_joy         : maps gamepad axes/buttons to /joy_vel (via twist_mux) and /a2/mode
   - gscam2             : H.264 multicast camera stream
@@ -15,9 +15,8 @@ Optional (pass rviz:=true):
   - rviz2 : 3-D visualisation
 
 Usage:
-  ros2 launch a2_ros real.launch.py
-  ros2 launch a2_ros real.launch.py rviz:=true
-  ros2 launch a2_ros real.launch.py lidar_config:=config_rear.yaml
+  ros2 launch a2_ros nuc.launch.py
+  ros2 launch a2_ros nuc.launch.py rviz:=true
 """
 
 import os
@@ -26,8 +25,6 @@ from launch import LaunchDescription
 from launch.actions import (
     DeclareLaunchArgument,
     IncludeLaunchDescription,
-    PopLaunchConfigurations,
-    PushLaunchConfigurations,
 )
 from launch.conditions import IfCondition
 from launch.launch_description_sources import PythonLaunchDescriptionSource
@@ -40,18 +37,12 @@ def generate_launch_description():
     description_dir = get_package_share_directory('a2_description')
     bridge_launch_dir = get_package_share_directory('a2_unitree_bridge')
     a2_ros_launch_dir = os.path.join(get_package_share_directory('a2_ros'), 'launch')
-    hesai_launch_dir = os.path.join(get_package_share_directory('hesai_ros_driver'), 'launch')
+    hesai_dir = get_package_share_directory('hesai_ros_driver')
 
     rviz_arg = DeclareLaunchArgument(
         'rviz',
         default_value='false',
         description='Launch RViz2 visualisation'
-    )
-
-    lidar_config_arg = DeclareLaunchArgument(
-        'lidar_config',
-        default_value='config_front.yaml',
-        description='Hesai config filename (relative to hesai_ros_driver/config/)'
     )
 
     a2_ros_dir = get_package_share_directory('a2_ros')
@@ -76,14 +67,20 @@ def generate_launch_description():
         )
     )
 
-    lidar_launch = IncludeLaunchDescription(
-        PythonLaunchDescriptionSource(
-            os.path.join(hesai_launch_dir, 'start_launch.py')
-        ),
-        launch_arguments={
-            'config_file': LaunchConfiguration('lidar_config'),
-            'rviz': 'false',
-        }.items()
+    front_lidar_node = Node(
+        namespace='hesai_ros_driver_front',
+        package='hesai_ros_driver',
+        executable='hesai_ros_driver_node',
+        output='screen',
+        parameters=[{'config_path': os.path.join(hesai_dir, 'config', 'config_front.yaml')}]
+    )
+
+    rear_lidar_node = Node(
+        namespace='hesai_ros_driver_rear',
+        package='hesai_ros_driver',
+        executable='hesai_ros_driver_node',
+        output='screen',
+        parameters=[{'config_path': os.path.join(hesai_dir, 'config', 'config_back.yaml')}]
     )
 
     robot_state_pub_node = Node(
@@ -130,18 +127,11 @@ def generate_launch_description():
 
     return LaunchDescription([
         rviz_arg,
-        lidar_config_arg,
         # bridge_launch,
         # teleop_launch,
         # camera_launch,
-        # Scope the 'rviz':'false' override below to lidar_launch only -
-        # without push/pop it overwrites the global 'rviz' LaunchConfiguration,
-        # which also suppresses the rviz_node below.
-        
-        PushLaunchConfigurations(),
-        lidar_launch,
-        PopLaunchConfigurations(),
-
+        front_lidar_node,
+        rear_lidar_node,
         robot_state_pub_node,
         front_imu_tf_node,
         rear_imu_tf_node,
