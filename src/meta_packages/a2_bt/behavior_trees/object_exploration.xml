@@ -1,0 +1,70 @@
+<root BTCPP_format="4">
+  <!--
+    Object exploration mission: explore the environment with TARE while the
+    detection mapper accumulates YOLO detections into a deduplicated map-frame
+    object list with RViz markers.
+
+    Flow:
+      1. SetMode 2/3/4         — boot FSM: stand → unlock → walk
+      2. SavePose              — capture start position as {home_pose}
+      3. CallTriggerService    — start detection mapper (clears previous list)
+      4. StartExploration      — trigger TARE via /start_exploration
+      5. ForceSuccess          — run exploration; absorb timeout FAILURE so
+           WaitForExplorationFinish   the Sequence always continues
+      6. CallTriggerService    — stop detection mapper
+      7. NavigateToPose        — return to {home_pose}
+      8. SetMode 1             — sit
+
+    After the mission, detected objects remain published on
+    /detected_objects_markers and logged in the detection_mapper node.
+
+    Usage:
+      ros2 action send_goal /bt_action_server behaviortree_ros2/action/ExecuteTree \
+        "{target_tree: 'ObjectExploration', payload: 'object_exploration.xml'}"
+  -->
+  <BehaviorTree ID="ObjectExploration">
+    <Sequence>
+
+      <!-- 1. Boot FSM: stand → unlock → walk -->
+      <SetMode mode="2" wait_for_sec="3.0" />
+      <SetMode mode="3" wait_for_sec="3.0" />
+      <SetMode mode="4" wait_for_sec="1.0" />
+
+      <!-- 2. Save starting position before exploring -->
+      <SavePose
+        pose_topic="dlio/odom_node/pose"
+        timeout_sec="5.0"
+        pose="{home_pose}" />
+
+      <!-- 3. Start detection mapper (resets accumulated object list) -->
+      <CallTriggerService service_name="detection_mapper/start" />
+
+      <!-- 4. Trigger TARE exploration -->
+      <StartExploration start_topic="/start_exploration" />
+
+      <!-- 5. Wait for exploration to finish or time out.
+           ForceSuccess absorbs FAILURE (timeout) so the Sequence always
+           continues to the stop + home steps. -->
+      <ForceSuccess>
+        <WaitForExplorationFinish
+          finish_topic="exploration_finish"
+          status_topic="bt/exploration_status"
+          timeout_sec="300.0" />
+      </ForceSuccess>
+
+      <!-- 6. Stop detection mapper -->
+      <CallTriggerService service_name="detection_mapper/stop" />
+
+      <!-- 7. Return home -->
+      <NavigateToPose
+        goal_pose="{home_pose}"
+        frame_id="map"
+        goal_topic="/goal_point"
+        timeout_sec="120.0" />
+
+      <!-- 8. Sit -->
+      <SetMode mode="1" wait_for_sec="3.0" />
+
+    </Sequence>
+  </BehaviorTree>
+</root>

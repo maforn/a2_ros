@@ -30,8 +30,8 @@
         pose="{home_pose}" />
 
       <!-- Exploration phase: exits when TARE finishes (SUCCESS) or times out (FAILURE).
-           AlwaysSuccess wraps the Parallel so the Sequence always proceeds to NavigateToPose. -->
-      <AlwaysSuccess>
+           ForceSuccess wraps the Parallel so the Sequence always proceeds to NavigateToPose. -->
+      <ForceSuccess>
         <Parallel success_count="1" failure_count="1">
 
           <WaitForExplorationFinish
@@ -39,11 +39,14 @@
             status_topic="bt/exploration_status"
             timeout_sec="300.0" />
 
-          <!-- Placeholder: future tasks to run in parallel during exploration -->
-          <AlwaysRunning />
+          <!-- Placeholder: future tasks to run in parallel during exploration.
+               KeepRunningUntilFailure(AlwaysSuccess) = runs forever until halted. -->
+          <KeepRunningUntilFailure>
+            <AlwaysSuccess />
+          </KeepRunningUntilFailure>
 
         </Parallel>
-      </AlwaysSuccess>
+      </ForceSuccess>
 
       <!-- Navigate back to saved starting position -->
       <NavigateToPose

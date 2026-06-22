@@ -9,7 +9,7 @@ Panels:
         - /RobotModel1
         - /TF1
       Splitter Ratio: 0.5
-    Tree Height: 302
+    Tree Height: 514
 Visualization Manager:
   Class: ""
   Displays:
@@ -142,6 +142,10 @@ Visualization Manager:
           Alpha: 1
           Show Axes: false
           Show Trail: false
+        front_lidar_imu_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
         front_lidar_link:
           Alpha: 1
           Show Axes: false
@@ -205,7 +209,13 @@ Visualization Manager:
           Value: true
         camera_link:
           Value: true
+        dlio_map:
+          Value: true
+        dlio_odom:
+          Value: true
         front_camera_optical_frame:
+          Value: true
+        front_lidar_imu_link:
           Value: true
         front_lidar_link:
           Value: true
@@ -245,21 +255,26 @@ Visualization Manager:
           camera_link:
             front_camera_optical_frame:
               {}
+          dlio_map:
+            map:
+              {}
+          dlio_odom:
+            {}
+          front_lidar_imu_link:
+            {}
           front_lidar_link:
             {}
           imu_link:
             {}
           rear_lidar_link:
             {}
-        map:
-          {}
       Update Interval: 0
       Value: true
     - Alpha: 1
       Autocompute Intensity Bounds: true
       Autocompute Value Bounds:
-        Max Value: 0.7723709940910339
-        Min Value: -0.4134822487831116
+        Max Value: 0.9602794647216797
+        Min Value: -0.2221331000328064
         Value: true
       Axis: Z
       Channel Name: intensity
@@ -339,26 +354,30 @@ Visualization Manager:
       Enabled: true
       Name: ObjectMarkers
       Namespaces:
-        object_labels: true
-        objects: true
+        {}
       Topic:
         Depth: 5
         Durability Policy: Volatile
         History Policy: Keep Last
         Reliability Policy: Reliable
-      # This allows the image to pop out in a separate floating window
-      View Type: TopDown
+        Value: visualization_marker_array
+      Value: true
     - Class: rviz_default_plugins/MarkerArray
       Enabled: true
       Name: ObjectMarkers
+      Namespaces:
+        {}
       Topic:
-        Value: /object_markers
         Depth: 5
+        Durability Policy: Volatile
         History Policy: Keep Last
         Reliability Policy: Reliable
+        Value: /detected_objects_markers
+      Value: true
+  Enabled: true
   Global Options:
     Background Color: 48; 48; 48
-    Fixed Frame: base_link
+    Fixed Frame: map
     Frame Rate: 30
   Name: root
   Tools:
@@ -370,7 +389,7 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz_default_plugins/Orbit
-      Distance: 5.01692533493042
+      Distance: 9.163697242736816
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1
@@ -385,20 +404,20 @@ Visualization Manager:
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Pitch: 0.4599999487400055
+      Pitch: 0.3250000774860382
       Target Frame: base_link
       Value: Orbit (rviz_default_plugins)
-      Yaw: 2.859999656677246
+      Yaw: 3.1600003242492676
     Saved: ~
 Window Geometry:
   Displays:
     collapsed: false
   FrontCamera:
     collapsed: false
-  Height: 793
+  Height: 1131
   Hide Left Dock: false
   Hide Right Dock: false
-  QMainWindow State: 000000ff00000000fd000000010000000000000156000002c3fc0200000002fb0000001600460072006f006e007400430061006d006500720061010000003b000001060000001600fffffffb000000100044006900730070006c0061007900730100000147000001b7000000c700ffffff00000160000002c300000004000000040000000800000008fc0000000100000002000000010000000a0054006f006f006c00730100000000ffffffff0000000000000000
-  Width: 700
-  X: 116
-  Y: 82
+  QMainWindow State: 000000ff00000000fd00000001000000000000015600000415fc0200000002fb0000001600460072006f006e007400430061006d006500720061010000003b000001840000001600fffffffb000000100044006900730070006c00610079007301000001c50000028b000000c700ffffff000002640000041500000004000000040000000800000008fc0000000100000002000000010000000a0054006f006f006c00730100000000ffffffff0000000000000000
+  Width: 960
+  X: 0
+  Y: 32

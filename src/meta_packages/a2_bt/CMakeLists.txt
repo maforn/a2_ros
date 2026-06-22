@@ -20,6 +20,7 @@ find_package(object_detection_msgs REQUIRED)
 find_package(sensor_msgs REQUIRED)
 find_package(cv_bridge REQUIRED)
 find_package(OpenCV REQUIRED)
+find_package(visualization_msgs REQUIRED)
 
 set(DEPENDENCIES
   behaviortree_cpp
@@ -35,6 +36,7 @@ set(DEPENDENCIES
   object_detection_msgs
   sensor_msgs
   cv_bridge
+  visualization_msgs
 )
 
 # Creates a shared library BT plugin
@@ -66,6 +68,13 @@ bt_plugin(a2_bt_wait_for_exploration_finish_plugin plugins/wait_for_exploration_
 bt_plugin(a2_bt_is_exploration_finished_plugin     plugins/is_exploration_finished.cpp)
 bt_plugin(a2_bt_save_pose_plugin                   plugins/save_pose.cpp)
 
+# ── Detection mapper node ─────────────────────────────────────────────────────
+add_executable(detection_mapper src/detection_mapper.cpp)
+target_include_directories(detection_mapper PUBLIC
+  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+  $<INSTALL_INTERFACE:include>)
+ament_target_dependencies(detection_mapper ${DEPENDENCIES})
+
 # ── Executor node ─────────────────────────────────────────────────────────────
 add_executable(bt_executor src/bt_executor.cpp)
 target_include_directories(bt_executor PUBLIC
@@ -87,6 +96,7 @@ target_link_libraries(bt_executor
 )
 
 install(TARGETS
+  detection_mapper
   a2_bt_create_pose_plugin
   a2_bt_navigate_to_pose_plugin
   a2_bt_publish_twist_plugin

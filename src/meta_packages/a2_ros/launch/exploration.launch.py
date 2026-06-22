@@ -217,6 +217,22 @@ def generate_launch_description():
             parameters=[tare_config],
         ),
 
+        # ---- Detection mapper: accumulates YOLO detections into a deduplicated
+        #      map-frame object list and publishes RViz markers. ----
+        Node(
+            package='a2_bt',
+            executable='detection_mapper',
+            name='detection_mapper',
+            output='screen',
+            parameters=[{
+                'detection_topic': '/detection_info',
+                'output_frame':    'map',
+                'cluster_radius':  1.0,    # merge detections of same class within 1 m
+                'min_confidence':  0.4,    # ignore weak detections
+                'detection_hz':    2.0,    # process detections at 2 Hz
+                'marker_ns':       'detected_objects',
+            }],
+        ),
 
         # ---- RViz ----
         Node(
