@@ -1,0 +1,30 @@
+<root BTCPP_format="4">
+  <!--
+    Navigate through four waypoints in a loop, repeated 20 times.
+
+    Each iteration visits the four points in sequence:
+      P1 → P2 → P3 → P4
+    Adjust x/y/yaw to match your map.
+  -->
+  <BehaviorTree ID="NavigateLoop">
+    <Repeat num_cycles="20">
+      <Sequence>
+        <!-- Point 1 -->
+        <CreatePose x="2.0"  y="1.0"  yaw="0.0" frame_id="map" pose="{goal_pose}" />
+        <NavigateToPose goal_pose="{goal_pose}" frame_id="map" goal_topic="/goal_point" timeout_sec="60.0" />
+
+        <!-- Point 2 -->
+        <CreatePose x="2.0"  y="-1.0" yaw="0.0" frame_id="map" pose="{goal_pose}" />
+        <NavigateToPose goal_pose="{goal_pose}" frame_id="map" goal_topic="/goal_point" timeout_sec="60.0" />
+
+        <!-- Point 3 -->
+        <CreatePose x="-2.0" y="-1.0" yaw="0.0" frame_id="map" pose="{goal_pose}" />
+        <NavigateToPose goal_pose="{goal_pose}" frame_id="map" goal_topic="/goal_point" timeout_sec="60.0" />
+
+        <!-- Point 4 -->
+        <CreatePose x="-2.0" y="1.0"  yaw="0.0" frame_id="map" pose="{goal_pose}" />
+        <NavigateToPose goal_pose="{goal_pose}" frame_id="map" goal_topic="/goal_point" timeout_sec="60.0" />
+      </Sequence>
+    </Repeat>
+  </BehaviorTree>
+</root>
