@@ -1,4 +1,5 @@
 #include "a2_bt/navigate_to_pose_action.hpp"
+#include "std_msgs/msg/int8.hpp"
 
 namespace a2_bt
 {
@@ -51,6 +52,15 @@ BT::NodeStatus NavigateToPoseAction::onStart()
     "[NavigateToPose] Sending goal → x=%.2f y=%.2f frame=%s via %s",
     goal_msg.point.x, goal_msg.point.y,
     goal_msg.header.frame_id.c_str(), goal_topic.c_str());
+
+  // Resume pathFollower (clears any safetyStop set by StopMovement) so it can
+  // follow the new path once far_planner starts publishing waypoints.
+  {
+    auto stop_pub = node_->create_publisher<std_msgs::msg::Int8>("/stop", rclcpp::QoS(1));
+    std_msgs::msg::Int8 stop_msg;
+    stop_msg.data = 0;
+    stop_pub->publish(stop_msg);
+  }
 
   goal_pub_ = node_->create_publisher<geometry_msgs::msg::PointStamped>(goal_topic, 1);
   goal_pub_->publish(goal_msg);

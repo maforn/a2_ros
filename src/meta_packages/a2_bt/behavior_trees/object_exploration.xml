@@ -31,15 +31,17 @@
       <SetMode mode="4" wait_for_sec="1.0" />
 
       <!-- 2. Save starting position before exploring -->
-      <SavePose
+      <!-- <SavePose
         pose_topic="dlio/odom_node/pose"
         timeout_sec="5.0"
-        pose="{home_pose}" />
+        pose="{home_pose}" /> -->
+       <CreatePose x="-10.0"  y="0.0"  yaw="0.0" frame_id="map" pose="{home_pose}" />
 
-      <!-- 3. Start detection mapper (resets accumulated object list) -->
+
+      <!-- 4. Start detection mapper (resets accumulated object list) -->
       <CallTriggerService service_name="detection_mapper/start" />
 
-      <!-- 4. Trigger TARE exploration -->
+      <!-- 5. Trigger TARE exploration -->
       <StartExploration start_topic="/start_exploration" />
 
       <!-- 5. Wait for exploration to finish or time out.
@@ -52,17 +54,24 @@
           timeout_sec="300.0" />
       </ForceSuccess>
 
-      <!-- 6. Stop detection mapper -->
+      <!-- 6. Stop TARE waypoints and halt pathFollower -->
+      <StopExploration />
+      <StopMovement />
+
+      <!-- 7. Stop detection mapper -->
       <CallTriggerService service_name="detection_mapper/stop" />
 
-      <!-- 7. Return home -->
+      <!-- 8. Resume movement so far_planner can drive the robot -->
+      <StopMovement data="0" />
+
+      <!-- 9. Return home -->
       <NavigateToPose
         goal_pose="{home_pose}"
         frame_id="map"
         goal_topic="/goal_point"
         timeout_sec="120.0" />
 
-      <!-- 8. Sit -->
+      <!-- 9. Sit -->
       <SetMode mode="1" wait_for_sec="3.0" />
 
     </Sequence>

@@ -67,8 +67,10 @@ bt_plugin(a2_bt_start_exploration_plugin           plugins/start_exploration.cpp
 bt_plugin(a2_bt_wait_for_exploration_finish_plugin plugins/wait_for_exploration_finish.cpp)
 bt_plugin(a2_bt_is_exploration_finished_plugin     plugins/is_exploration_finished.cpp)
 bt_plugin(a2_bt_save_pose_plugin                   plugins/save_pose.cpp)
+bt_plugin(a2_bt_stop_movement_plugin               plugins/stop_movement.cpp)
+bt_plugin(a2_bt_stop_exploration_plugin            plugins/stop_exploration.cpp)
 
-# ── Detection mapper node ─────────────────────────────────────────────────────
+# ── Standalone nodes ──────────────────────────────────────────────────────────
 add_executable(detection_mapper src/detection_mapper.cpp)
 target_include_directories(detection_mapper PUBLIC
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
@@ -93,6 +95,8 @@ target_link_libraries(bt_executor
   a2_bt_wait_for_exploration_finish_plugin
   a2_bt_is_exploration_finished_plugin
   a2_bt_save_pose_plugin
+  a2_bt_stop_movement_plugin
+  a2_bt_stop_exploration_plugin
 )
 
 install(TARGETS

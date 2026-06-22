@@ -48,6 +48,10 @@
         </Parallel>
       </ForceSuccess>
 
+      <!-- Stop TARE waypoints; pathFollower is resumed by NavigateToPose -->
+      <StopExploration />
+      <StopMovement />
+
       <!-- Navigate back to saved starting position -->
       <NavigateToPose
         goal_pose="{home_pose}"
