@@ -107,8 +107,8 @@ Robot:
                              scene_obstacles.xml, scene_maze.xml, scene_test_meshes.xml
   bt                 Launch BT executor (a2_bt bt_executor)
   tree <name>        Send a tree goal to bt_executor (any .xml in a2_bt/behavior_trees)
-  view  [--rviz]     Launch robot_state_publisher + RViz with use_sim_time:=true
-                     (run in another terminal during bag playback to visualize robot/sensors)
+  view  [--rviz] [<file>] [--clock] [--pause] [--rate <rate>]
+                     Launch robot_state_publisher (plus RViz if --rviz is set) with optional bag playback
   walk               Command robot to walk    (mode=4)
   stop               Stop moving, keep balance (mode=3)
   unlock             Command robot to unlock  (mode=3)
@@ -213,68 +213,48 @@ case "$CMD" in
         info "Tailing: $LATEST"
         tail -f "$LATEST"
         ;;
+
     sim)
         SIM_ARGS=(rviz:=$RVIZ dlio:=$DLIO headless:=$HEADLESS)
         [ -n "$SCENE" ] && SIM_ARGS+=(scene:="$SCENE")
         _run sim ros2 launch a2_ros sim.launch.py "${SIM_ARGS[@]}"
         ;;
     view)
-        if [ "$RVIZ" = "false" ]; then RVIZ=true; fi
         bag_val=""
         clock_val="true"
         pause_val="false"
+        rate_val="1.0"
         extra_launch_args=()
 
-        for arg in "${ARGS[@]:1}"; do
+        i=1
+        while [[ $i -lt ${#ARGS[@]} ]]; do
+            arg="${ARGS[i]}"
             if [[ "$arg" == "--clock" ]]; then
                 clock_val="true"
             elif [[ "$arg" == "--pause" ]]; then
                 pause_val="true"
             elif [[ "$arg" == "--no-clock" ]]; then
                 clock_val="false"
+            elif [[ "$arg" == "-r" || "$arg" == "--rate" ]]; then
+                i=$((i + 1))
+                rate_val="${ARGS[i]}"
+            elif [[ "$arg" == -r=* || "$arg" == --rate=* ]]; then
+                rate_val="${arg#*=}"
             elif [[ "$arg" == *":="* ]]; then
                 extra_launch_args+=("$arg")
             else
                 bag_val="$arg"
             fi
+            i=$((i + 1))
         done
 
         LAUNCH_ARGS=(rviz:=$RVIZ)
         if [ -n "$bag_val" ]; then
-            LAUNCH_ARGS+=(bag:="$bag_val" clock:="$clock_val" pause:="$pause_val")
+            LAUNCH_ARGS+=(bag:="$bag_val" clock:="$clock_val" pause:="$pause_val" rate:="$rate_val")
         fi
         LAUNCH_ARGS+=("${extra_launch_args[@]}")
 
         _run view ros2 launch a2_ros view_bag.launch.py "${LAUNCH_ARGS[@]}"
-        ;;
-    view)
-        if [ "$RVIZ" = "false" ]; then RVIZ=true; fi
-        bag_val=""
-        clock_val="true"
-        pause_val="false"
-        extra_launch_args=()
-
-        for arg in "${ARGS[@]:1}"; do
-            if [[ "$arg" == "--clock" ]]; then
-                clock_val="true"
-            elif [[ "$arg" == "--pause" ]]; then
-                pause_val="true"
-            elif [[ "$arg" == "--no-clock" ]]; then
-                clock_val="false"
-            elif [[ "$arg" == *":="* ]]; then
-                extra_launch_args+=("$arg")
-            else
-                bag_val="$arg"
-            fi
-        done
-
-        LAUNCH_ARGS=(rviz:=$RVIZ)
-        if [ -n "$bag_val" ]; then
-            LAUNCH_ARGS+=(bag:="$bag_val" clock:="$clock_val" pause:="$pause_val")
-        fi
-        LAUNCH_ARGS+=("${extra_launch_args[@]}")
-
-        ros2 launch a2_ros view_bag.launch.py "${LAUNCH_ARGS[@]}"
         ;;
     walk)
         _set_mode 4
@@ -301,15 +281,19 @@ case "$CMD" in
         ros2 run teleop_twist_keyboard teleop_twist_keyboard --ros-args "${KB_ARGS[@]}"
         ;;
     nav)
-        _run nav ros2 launch a2_ros navigation.launch.py rviz:=$RVIZ
+        NAV_ARGS=(rviz:=$RVIZ)
+        [ "$A2_MODE" = "sim" ] && NAV_ARGS+=(use_sim_time:=true)
+        _run nav ros2 launch a2_ros navigation.launch.py "${NAV_ARGS[@]}" "${ARGS[@]:1}"
         ;;
     explore)
-        _run explore ros2 launch a2_ros exploration.launch.py rviz:=$RVIZ
+        EXPLORE_ARGS=(rviz:=$RVIZ)
+        [ "$A2_MODE" = "sim" ] && EXPLORE_ARGS+=(use_sim_time:=true)
+        _run explore ros2 launch a2_ros exploration.launch.py "${EXPLORE_ARGS[@]}" "${ARGS[@]:1}"
         ;;
     dlio)
         DLIO_ARGS=(rviz:=$RVIZ)
         [ "$A2_MODE" = "sim" ] && DLIO_ARGS+=(use_sim_time:=true)
-        _run dlio ros2 launch a2_ros dlio.launch.py "${DLIO_ARGS[@]}"
+        _run dlio ros2 launch a2_ros dlio.launch.py "${DLIO_ARGS[@]}" "${ARGS[@]:1}"
         ;;
     resple)
         RESPLE_ARGS=(rviz:=$RVIZ)

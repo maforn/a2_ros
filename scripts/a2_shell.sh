@@ -56,13 +56,19 @@ keyboard nav explore dlio detect topics nodes bag plotjuggler foxglove router ve
         sim)
             COMPREPLY=($(compgen -W "--rviz --dlio --scene" -- "$cur"))
             ;;
-        nav|explore|dlio|view)
+        nuc)
+            COMPREPLY=($(compgen -W "--rviz" -- "$cur"))
+            ;;
+        nav|explore|dlio)
             COMPREPLY=($(compgen -W "--rviz" -- "$cur"))
             ;;
         tree)
             local trees
             trees=$(ls "${ws}/src/meta_packages/a2_bt/behavior_trees"/*.xml 2>/dev/null | xargs -r -n1 basename -s .xml)
             COMPREPLY=($(compgen -W "$trees" -- "$cur"))
+            ;;
+        view)
+            COMPREPLY=($(compgen -W "--rviz --clock --no-clock --pause -r --rate" -- "$cur"))
             ;;
         clean)
             COMPREPLY=($(compgen -W "--yes" -- "$cur"))
