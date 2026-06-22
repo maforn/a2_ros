@@ -25,7 +25,7 @@ x-common: &common
     # server, so default to :20 — the KasmVNC display in the `vnc` service
     # (a high number that won't collide with host :0/:1 or other VNC instances).
     # (Also silences the "DISPLAY variable is not set" warning on macOS/Windows.)
-    - DISPLAY=${DISPLAY:-:20}
+    - DISPLAY=${DISPLAY:-:12}
     - XAUTHORITY=/home/ubuntu/.Xauthority
     - QT_X11_NO_MITSHM=1
   working_dir: /a2_ros
