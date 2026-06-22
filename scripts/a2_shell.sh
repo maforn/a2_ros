@@ -21,7 +21,7 @@ _a2_complete() {
     cmd="${COMP_WORDS[1]:-}"
     ws="${WORKSPACE_DIR:-/a2_ros}"
 
-    local commands="source build clean env log sim walk stop unlock stand sit \
+    local commands="source build clean env log sim bt tree walk stop unlock stand sit \
 keyboard nav explore dlio detect topics nodes bag plotjuggler foxglove router verify ps down help"
 
     # Value after --scene: available scene files.
@@ -59,11 +59,16 @@ keyboard nav explore dlio detect topics nodes bag plotjuggler foxglove router ve
         nav|explore|dlio)
             COMPREPLY=($(compgen -W "--rviz" -- "$cur"))
             ;;
+        tree)
+            local trees
+            trees=$(ls "${ws}/src/meta_packages/a2_bt/behavior_trees"/*.xml 2>/dev/null | xargs -r -n1 basename -s .xml)
+            COMPREPLY=($(compgen -W "$trees" -- "$cur"))
+            ;;
         clean)
             COMPREPLY=($(compgen -W "--yes" -- "$cur"))
             ;;
         down)
-            COMPREPLY=($(compgen -W "sim nav explore dlio detect foxglove plotjuggler" -- "$cur"))
+            COMPREPLY=($(compgen -W "sim nav explore dlio resple bt detect foxglove plotjuggler" -- "$cur"))
             ;;
     esac
 }

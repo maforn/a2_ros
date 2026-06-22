@@ -42,6 +42,7 @@ _stack_pattern() {
         explore)     echo "exploration.launch.py" ;;
         dlio)        echo "dlio.launch.py" ;;
         resple)      echo "resple.launch.py" ;;
+        bt)          echo "bt_executor.launch.py" ;;
         detect)      echo "object_detection" ;;
         foxglove)    echo "foxglove_bridge" ;;
         plotjuggler) echo "run plotjuggler|/plotjuggler" ;;
@@ -104,6 +105,8 @@ Robot:
                      --headless runs with no MuJoCo viewer (visualize in RViz/Foxglove)
                      scenes: scene.xml (default), scene_flat.xml, scene_terrain.xml,
                              scene_obstacles.xml, scene_maze.xml, scene_test_meshes.xml
+  bt                 Launch BT executor (a2_bt bt_executor)
+  tree <name>        Send a tree goal to bt_executor (any .xml in a2_bt/behavior_trees)
   walk               Command robot to walk    (mode=4)
   stop               Stop moving, keep balance (mode=3)
   unlock             Command robot to unlock  (mode=3)
@@ -131,7 +134,7 @@ Utilities:
   router             Start Zenoh router (foreground)
   verify             Verify MuJoCo installation
   ps                 List running managed stacks and their PIDs
-  down [stack]       Stop a running stack (sim|nav|explore|dlio|resple|detect|
+  down [stack]       Stop a running stack (sim|nav|explore|dlio|resple|bt|detect|
                      foxglove|plotjuggler), or all of them if no stack is given
 
 Mode:      ${A2_MODE:-unknown}
@@ -253,6 +256,34 @@ case "$CMD" in
         [ "$A2_MODE" = "sim" ] && RESPLE_ARGS+=(use_sim_time:=true)
         _run resple ros2 launch a2_ros resple.launch.py "${RESPLE_ARGS[@]}"
         ;;
+    bt)
+        _run bt ros2 launch a2_bt bt_executor.launch.py
+        ;;
+    tree)
+        TREE_NAME="${ARGS[1]:-}"
+        TREES_DIR="$WORKSPACE_DIR/src/meta_packages/a2_bt/behavior_trees"
+        _available_trees() { ls "$TREES_DIR"/*.xml 2>/dev/null | xargs -r -n1 basename -s .xml | tr '\n' ' '; }
+        if [[ -z "$TREE_NAME" ]]; then
+            error "Usage: a2 tree <name>"
+            info  "  Available: $(_available_trees)"
+            exit 1
+        fi
+        TREE_FILE="$TREE_NAME.xml"
+        TREE_PATH="$TREES_DIR/$TREE_FILE"
+        if [[ ! -f "$TREE_PATH" ]]; then
+            error "Tree not found: $TREE_FILE"
+            info  "  Available: $(_available_trees)"
+            exit 1
+        fi
+        TREE_ID=$(grep -oP '<BehaviorTree ID="\K[^"]+' "$TREE_PATH" | head -1)
+        if [[ -z "$TREE_ID" ]]; then
+            error "No BehaviorTree ID found in $TREE_FILE"
+            exit 1
+        fi
+        info "Sending tree goal: $TREE_ID ($TREE_FILE)"
+        ros2 action send_goal /bt_action_server btcpp_ros2_interfaces/action/ExecuteTree \
+            "{target_tree: '$TREE_ID', payload: '$TREE_FILE'}"
+        ;;
     detect)
         # Object detection (YOLO, runs on CPU). Use the real-robot launch on hardware.
         if [ "$A2_MODE" = "robot" ]; then
@@ -317,7 +348,7 @@ case "$CMD" in
     ps)
         # Show which managed stacks are currently running, with their PIDs.
         FOUND=false
-        for s in sim nav explore dlio resple detect foxglove plotjuggler; do
+        for s in sim nav explore dlio resple bt detect foxglove plotjuggler; do
             PIDS="$(_stack_pids "$(_stack_pattern "$s")" | tr '\n' ' ')"
             if [[ -n "${PIDS// }" ]]; then
                 info "$(printf '%-12s' "$s") ${PIDS}"
@@ -334,7 +365,7 @@ case "$CMD" in
             PAT="$(_stack_pattern "$TARGET")" || { error "Unknown stack: $TARGET"; exit 1; }
             _kill_stale "$PAT"
         else
-            for s in sim nav explore dlio resple detect foxglove plotjuggler; do
+            for s in sim nav explore dlio resple bt detect foxglove plotjuggler; do
                 _kill_stale "$(_stack_pattern "$s")"
             done
         fi
