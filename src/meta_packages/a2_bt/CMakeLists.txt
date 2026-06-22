@@ -11,6 +11,7 @@ find_package(behaviortree_ros2 REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(geometry_msgs REQUIRED)
 find_package(std_msgs REQUIRED)
+find_package(std_srvs REQUIRED)
 find_package(tf2 REQUIRED)
 find_package(tf2_ros REQUIRED)
 find_package(tf2_geometry_msgs REQUIRED)
@@ -26,6 +27,7 @@ set(DEPENDENCIES
   rclcpp
   geometry_msgs
   std_msgs
+  std_srvs
   tf2
   tf2_ros
   tf2_geometry_msgs
@@ -58,6 +60,7 @@ target_include_directories(a2_bt_save_image_plugin PUBLIC
   $<INSTALL_INTERFACE:include>)
 ament_target_dependencies(a2_bt_save_image_plugin ${DEPENDENCIES})
 target_link_libraries(a2_bt_save_image_plugin ${OpenCV_LIBS})
+bt_plugin(a2_bt_call_trigger_service_plugin        plugins/call_trigger_service.cpp)
 bt_plugin(a2_bt_start_exploration_plugin           plugins/start_exploration.cpp)
 bt_plugin(a2_bt_wait_for_exploration_finish_plugin plugins/wait_for_exploration_finish.cpp)
 bt_plugin(a2_bt_is_exploration_finished_plugin     plugins/is_exploration_finished.cpp)
@@ -72,6 +75,10 @@ target_link_libraries(bt_executor
   a2_bt_create_pose_plugin
   a2_bt_navigate_to_pose_plugin
   a2_bt_publish_twist_plugin
+  a2_bt_set_mode_plugin
+  a2_bt_get_object_pose_plugin
+  a2_bt_save_image_plugin
+  a2_bt_call_trigger_service_plugin
   a2_bt_start_exploration_plugin
   a2_bt_wait_for_exploration_finish_plugin
   a2_bt_is_exploration_finished_plugin
@@ -81,6 +88,10 @@ install(TARGETS
   a2_bt_create_pose_plugin
   a2_bt_navigate_to_pose_plugin
   a2_bt_publish_twist_plugin
+  a2_bt_set_mode_plugin
+  a2_bt_get_object_pose_plugin
+  a2_bt_save_image_plugin
+  a2_bt_call_trigger_service_plugin
   a2_bt_start_exploration_plugin
   a2_bt_wait_for_exploration_finish_plugin
   a2_bt_is_exploration_finished_plugin

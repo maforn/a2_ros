@@ -12,6 +12,7 @@
 #include "a2_bt/set_mode.hpp"
 #include "a2_bt/get_object_pose.hpp"
 #include "a2_bt/save_image.hpp"
+#include "a2_bt/call_trigger_service.hpp"
 #include "a2_bt/start_exploration.hpp"
 #include "a2_bt/wait_for_exploration_finish.hpp"
 #include "a2_bt/is_exploration_finished.hpp"
@@ -31,9 +32,13 @@ protected:
     params.server_timeout        = std::chrono::milliseconds(30000);
     params.wait_for_server_timeout = std::chrono::milliseconds(5000);
 
+    factory.registerNodeType<a2_bt::CallTriggerService>("CallTriggerService", params);
     factory.registerNodeType<a2_bt::CreatePose>("CreatePose");
     factory.registerNodeType<a2_bt::NavigateToPoseAction>("NavigateToPose", params);
     factory.registerNodeType<a2_bt::PublishTwist>("PublishTwist", params);
+    factory.registerNodeType<a2_bt::SetMode>("SetMode", params);
+    factory.registerNodeType<a2_bt::GetObjectPose>("GetObjectPose", params);
+    factory.registerNodeType<a2_bt::SaveImage>("SaveImage", params);
     factory.registerNodeType<a2_bt::StartExploration>("StartExploration", params);
     factory.registerNodeType<a2_bt::WaitForExplorationFinish>("WaitForExplorationFinish", params);
     factory.registerNodeType<a2_bt::IsExplorationFinished>("IsExplorationFinished", params);
