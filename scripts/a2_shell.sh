@@ -59,8 +59,11 @@ keyboard nav explore dlio resple detect topics nodes bag plotjuggler foxglove ro
         nuc)
             COMPREPLY=($(compgen -W "--rviz" -- "$cur"))
             ;;
-        nav|explore|dlio|view)
+        nav|explore|dlio)
             COMPREPLY=($(compgen -W "--rviz" -- "$cur"))
+            ;;
+        view)
+            COMPREPLY=($(compgen -W "--rviz --clock --no-clock --pause -r --rate" -- "$cur"))
             ;;
         clean)
             COMPREPLY=($(compgen -W "--yes" -- "$cur"))

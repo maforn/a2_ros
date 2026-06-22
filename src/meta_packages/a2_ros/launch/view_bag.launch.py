@@ -26,11 +26,14 @@ def play_bag_setup(context, *args, **kwargs):
 
     clock = context.perform_substitution(LaunchConfiguration('clock'))
     pause = context.perform_substitution(LaunchConfiguration('pause'))
+    rate = context.perform_substitution(LaunchConfiguration('rate'))
 
     if clock.lower() in ['true', '1']:
         cmd.append('--clock')
     if pause.lower() in ['true', '1']:
         cmd.append('--pause')
+    if rate:
+        cmd.extend(['--rate', rate])
 
     return [
         ExecuteProcess(
@@ -68,6 +71,12 @@ def generate_launch_description():
         description='Start bag playback paused'
     )
 
+    rate_arg = DeclareLaunchArgument(
+        'rate',
+        default_value='1.0',
+        description='Rate at which to play back messages'
+    )
+
     urdf_path = os.path.join(description_dir, 'urdf', 'a2.urdf')
     rviz_path = os.path.join(a2_ros_dir, 'rviz', 'default.rviz')
 
@@ -97,6 +106,7 @@ def generate_launch_description():
         bag_arg,
         clock_arg,
         pause_arg,
+        rate_arg,
         robot_state_pub_node,
         rviz_node,
         OpaqueFunction(function=play_bag_setup),

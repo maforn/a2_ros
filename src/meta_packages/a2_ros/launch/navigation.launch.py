@@ -53,10 +53,17 @@ def generate_launch_description():
         description='Launch RViz2 with navigation config'
     )
 
+    use_sim_time_arg = DeclareLaunchArgument(
+        'use_sim_time',
+        default_value='false',
+        description='Use simulation clock (sim time)'
+    )
+
     nodes = [
         rviz_arg,
+        use_sim_time_arg,
         # Use sim time for all navigation nodes
-        SetParameter(name='use_sim_time', value=False),
+        SetParameter(name='use_sim_time', value=LaunchConfiguration('use_sim_time')),
 
         # ---- terrain analysis (local map) ----
         Node(
@@ -240,7 +247,7 @@ def generate_launch_description():
             name='rviz2',
             output='screen',
             arguments=['-d', rviz_path],
-            parameters=[{'use_sim_time': False}],
+            parameters=[{'use_sim_time': LaunchConfiguration('use_sim_time')}],
             condition=IfCondition(LaunchConfiguration('rviz')),
         ),
     ]
