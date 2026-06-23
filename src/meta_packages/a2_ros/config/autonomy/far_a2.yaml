@@ -20,3 +20,4 @@ far_planner:
 
     # Dynamic obstacle decay
     dynamic_obs_decay_time: 2.0
+    g_planner/path_momentum_thred: 2 
