@@ -25,7 +25,7 @@
 
       <!-- Capture starting position in map frame (DLIO) before exploring -->
       <SavePose
-        pose_topic="dlio/odom_node/pose"
+        pose_topic="/state_estimation"
         timeout_sec="5.0"
         pose="{home_pose}" />
 

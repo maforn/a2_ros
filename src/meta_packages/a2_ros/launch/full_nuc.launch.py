@@ -3,7 +3,7 @@ Full real-robot mission stack — nuc + DLIO + navigate_and_explore + BT executo
 
 Starts:
   - nuc.launch.py                  : LiDAR driver + robot_state_publisher + TF
-  - dlio.launch.py                 : LiDAR-inertial odometry
+  - resple.launch.py               : LiDAR-inertial odometry
   - navigate_and_explore.launch.py : TARE + far_planner + detection_mapper
   - bt_executor.launch.py          : BT action server
 
@@ -47,10 +47,10 @@ def generate_launch_description():
         ),
         PopLaunchConfigurations(),
 
-        # ---- DLIO odometry ----
+        # ---- RESPLE odometry ----
         PushLaunchConfigurations(),
         IncludeLaunchDescription(
-            PythonLaunchDescriptionSource(os.path.join(a2_ros_launch_dir, 'dlio.launch.py')),
+            PythonLaunchDescriptionSource(os.path.join(a2_ros_launch_dir, 'resple.launch.py')),
             launch_arguments={
                 'use_sim_time': 'false',
                 'rviz':         'false',

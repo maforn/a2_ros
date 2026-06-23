@@ -10,6 +10,7 @@ find_package(behaviortree_cpp REQUIRED)
 find_package(behaviortree_ros2 REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(geometry_msgs REQUIRED)
+find_package(nav_msgs REQUIRED)
 find_package(std_msgs REQUIRED)
 find_package(std_srvs REQUIRED)
 find_package(tf2 REQUIRED)
@@ -27,6 +28,7 @@ set(DEPENDENCIES
   behaviortree_ros2
   rclcpp
   geometry_msgs
+  nav_msgs
   std_msgs
   std_srvs
   tf2

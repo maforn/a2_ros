@@ -4,7 +4,7 @@ Full simulation mission stack — sim + DLIO + navigate_and_explore + BT executo
 Starts:
   - sim.launch.py            : MuJoCo + locomotion controller (dlio:=true mode —
                                a2_bridge publishes IMU/joints only, DLIO provides odometry)
-  - dlio.launch.py           : LiDAR-inertial odometry (use_sim_time=true)
+  - resple.launch.py         : LiDAR-inertial odometry (use_sim_time=true)
   - navigate_and_explore.launch.py : TARE + far_planner + detection_mapper
   - bt_executor.launch.py    : BT action server
 
@@ -51,10 +51,10 @@ def generate_launch_description():
         ),
         PopLaunchConfigurations(),
 
-        # ---- DLIO odometry ----
+        # ---- RESPLE odometry ----
         PushLaunchConfigurations(),
         IncludeLaunchDescription(
-            PythonLaunchDescriptionSource(os.path.join(a2_ros_launch_dir, 'dlio.launch.py')),
+            PythonLaunchDescriptionSource(os.path.join(a2_ros_launch_dir, 'resple.launch.py')),
             launch_arguments={
                 'use_sim_time': 'true',
                 'rviz':         'false',
