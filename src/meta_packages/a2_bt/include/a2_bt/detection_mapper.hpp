@@ -1,6 +1,7 @@
 #pragma once
 
 #include <atomic>
+#include <fstream>
 #include <mutex>
 #include <string>
 #include <vector>
@@ -39,8 +40,9 @@ struct DetectedObject
  *   4. Republish the full list as a MarkerArray (sphere + label per object).
  *
  * Services:
- *   ~/start  (std_srvs/Trigger) — enable detection accumulation
- *   ~/stop   (std_srvs/Trigger) — disable accumulation (keeps stored objects)
+ *   ~/start    (std_srvs/Trigger) — enable detection accumulation, clears list
+ *   ~/stop     (std_srvs/Trigger) — disable accumulation (keeps stored objects)
+ *   ~/save_csv (std_srvs/Trigger) — write current list to CSV (id,class,x,y,z)
  *
  * Parameters:
  *   detection_topic  (string, default: /detection_info)
@@ -74,6 +76,7 @@ private:
   rclcpp::TimerBase::SharedPtr process_timer_;
   rclcpp::Service<Trigger>::SharedPtr start_srv_;
   rclcpp::Service<Trigger>::SharedPtr stop_srv_;
+  rclcpp::Service<Trigger>::SharedPtr save_csv_srv_;
 
   std::shared_ptr<tf2_ros::Buffer> tf_buffer_;
   std::shared_ptr<tf2_ros::TransformListener> tf_listener_;
@@ -86,7 +89,8 @@ private:
   object_detection_msgs::msg::ObjectDetectionInfoArray::SharedPtr latest_;
   bool has_new_{false};
 
-  // Accumulated, deduplicated object list (only accessed inside processTick)
+  // Accumulated, deduplicated object list — protected by objects_mtx_
+  std::mutex objects_mtx_;
   std::vector<DetectedObject> objects_;
   int next_id_{0};
 
@@ -95,6 +99,7 @@ private:
   double cluster_radius_;
   float min_confidence_;
   std::string marker_ns_;
+  std::string csv_path_;
 };
 
 }  // namespace a2_bt

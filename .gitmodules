@@ -6,7 +6,7 @@
 	url = git@github.com:ETHZ-RobotX/unitree_a2_mujoco.git
 [submodule "external/a2_description"]
 	path = src/core/a2_description
-	url = git@github.com:ETHZ-RobotX/a2_description.git
+	url = git@github.com:maforn/a2_description.git
 [submodule "external/a2_locomotion_controller"]
 	path = src/control/a2_locomotion_controller
 	url = git@github.com:ETHZ-RobotX/a2_locomotion_controller.git
@@ -21,7 +21,7 @@
 	url = git@github.com:ETHZ-RobotX/far_planner.git
 [submodule "external/navigation_ext_ros2"]
 	path = external/navigation_ext_ros2
-	url = git@github.com:ETHZ-RobotX/navigation_ext_ros2.git
+	url = https://github.com/Linus-Schwarz/navigation_ext_ros2
 [submodule "external/tare_planner"]
 	path = external/tare_planner
 	url = git@github.com:paureverte/tare_planner.git

@@ -40,7 +40,7 @@
 
       <!-- 2. Save starting position before exploring -->
       <!-- <SavePose
-        pose_topic="dlio/odom_node/pose"
+        pose_topic="/state_estimation"
         timeout_sec="5.0"
         pose="{home_pose}" /> -->
        <CreatePose x="-10.0"  y="0.0"  yaw="0.0" frame_id="map" pose="{home_pose}" />
@@ -81,8 +81,9 @@
       <StopExploration />
       <StopMovement />
 
-      <!-- 7. Stop detection mapper -->
+      <!-- 7. Stop detection mapper and save results to CSV -->
       <CallTriggerService service_name="detection_mapper/stop" />
+      <CallTriggerService service_name="detection_mapper/save_csv" />
 
       <!-- 7. Save as soon as exploration finishes, before attempting the
            trip home — ForceSuccess so a save hiccup doesn't block

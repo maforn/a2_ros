@@ -9,21 +9,23 @@
 #include "behaviortree_cpp/action_node.h"
 #include "behaviortree_ros2/ros_node_params.hpp"
 #include "geometry_msgs/msg/pose_stamped.hpp"
+#include "nav_msgs/msg/odometry.hpp"
 #include "rclcpp/rclcpp.hpp"
 
 namespace a2_bt
 {
 
 /**
- * Async BT node that captures the current robot pose from DLIO and writes it
- * to the blackboard.
+ * Async BT node that captures the current robot pose and writes it to the blackboard.
  *
- * Subscribes to pose_topic (geometry_msgs/PoseStamped published by DLIO in
- * the map frame), stores the first message received, and returns SUCCESS.
- * Returns FAILURE if no message arrives within timeout_sec.
+ * Subscribes to pose_topic. Accepts either:
+ *   - nav_msgs/Odometry  (RESPLE: /state_estimation)
+ *   - geometry_msgs/PoseStamped (DLIO: dlio/odom_node/pose)
+ *
+ * Default topic is /state_estimation (RESPLE). Override via the pose_topic port.
  *
  * Input ports:
- *   pose_topic  (string) : DLIO map-frame pose topic (default: dlio/odom_node/pose)
+ *   pose_topic  (string) : odometry topic (default: /state_estimation)
  *   timeout_sec (double) : Max wait [s] for first message (default: 5.0)
  *
  * Output ports:
@@ -45,7 +47,7 @@ public:
 
 private:
   rclcpp::Node::SharedPtr node_;
-  rclcpp::Subscription<geometry_msgs::msg::PoseStamped>::SharedPtr pose_sub_;
+  rclcpp::Subscription<nav_msgs::msg::Odometry>::SharedPtr odom_sub_;
 
   std::mutex pose_mutex_;
   geometry_msgs::msg::PoseStamped latest_pose_;
