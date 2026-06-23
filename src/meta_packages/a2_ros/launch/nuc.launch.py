@@ -23,15 +23,9 @@ Usage:
 import os
 from ament_index_python.packages import get_package_share_directory
 from launch import LaunchDescription
-from launch.actions import (
-    DeclareLaunchArgument,
-    IncludeLaunchDescription,
-    PopLaunchConfigurations,
-    PushLaunchConfigurations,
-)
+from launch.actions import DeclareLaunchArgument
 from launch.conditions import IfCondition
-from launch.launch_description_sources import PythonLaunchDescriptionSource
-from launch.substitutions import LaunchConfiguration, Command
+from launch.substitutions import LaunchConfiguration, Command, PathJoinSubstitution
 from launch_ros.actions import Node
 from launch_ros.parameter_descriptions import ParameterValue
 
@@ -40,7 +34,6 @@ def generate_launch_description():
     description_dir = get_package_share_directory('a2_description')
     bridge_launch_dir = get_package_share_directory('a2_unitree_bridge')
     a2_ros_launch_dir = os.path.join(get_package_share_directory('a2_ros'), 'launch')
-    hesai_launch_dir = os.path.join(get_package_share_directory('hesai_ros_driver'), 'launch')
 
     rviz_arg = DeclareLaunchArgument(
         'rviz',
@@ -76,14 +69,15 @@ def generate_launch_description():
         )
     )
 
-    lidar_launch = IncludeLaunchDescription(
-        PythonLaunchDescriptionSource(
-            os.path.join(hesai_launch_dir, 'start_launch.py')
-        ),
-        launch_arguments={
-            'config_file': LaunchConfiguration('lidar_config'),
-            'rviz': 'false',
-        }.items()
+    hesai_dir = get_package_share_directory('hesai_ros_driver')
+    lidar_node = Node(
+        namespace='hesai_ros_driver',
+        package='hesai_ros_driver',
+        executable='hesai_ros_driver_node',
+        output='log',
+        parameters=[{
+            'config_path': PathJoinSubstitution([hesai_dir, 'config', LaunchConfiguration('lidar_config')])
+        }],
     )
 
     robot_state_pub_node = Node(
@@ -134,13 +128,7 @@ def generate_launch_description():
         # bridge_launch,
         # teleop_launch,
         # camera_launch,
-        # Scope the 'rviz':'false' override below to lidar_launch only -
-        # without push/pop it overwrites the global 'rviz' LaunchConfiguration,
-        # which also suppresses the rviz_node below.
-        
-        PushLaunchConfigurations(),
-        lidar_launch,
-        PopLaunchConfigurations(),
+        lidar_node,
 
         robot_state_pub_node,
         front_imu_tf_node,

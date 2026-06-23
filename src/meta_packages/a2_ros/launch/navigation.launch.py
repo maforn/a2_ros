@@ -115,7 +115,7 @@ def generate_launch_description():
                 'useSorting':           True,
                 'quantileZ':            0.25,
                 'vehicleHeight':        0.5,
-                'voxelPointUpdateThre': 100,
+                'voxelPointUpdateThre': 10,   # 100→10: short obstacles return few points but still need to be blocked
                 'voxelTimeUpdateThre':  2.0,
                 'lowerBoundZ':          -1.0,
                 'upperBoundZ':          1.5,  # 1.0→1.5: consistent with terrain_analysis maxRelZ
@@ -147,14 +147,14 @@ def generate_launch_description():
                 'checkObstacle':       True,
                 'checkRotObstacle':    True,
                 'adjacentRange':       3.5,
-                'obstacleHeightThre':  0.30,  # 0.25→0.30: ignore bumps under 30 cm
+                'obstacleHeightThre':  0.15,  
                 'groundHeightThre':    0.1,
                 'costHeightThre':      0.1,
                 'costScore':           0.02,
                 'useCost':             False,
-                'pointPerPathThre':    3,    # 2→3: need 3 blocked points per path (less noise)
+                'pointPerPathThre':    3,    
                 'minRelZ':             -0.5,
-                'maxRelZ':             1.2,  # 0.8→1.2: detect obstacles/gate beams up to 1.2 m
+                'maxRelZ':             1.2, 
                 'maxSpeed':            0.5,
                 'dirWeight':           0.1,
                 'dirThre':             90.0,

@@ -40,7 +40,7 @@
 
       <!-- 12. Save map -->
       <ForceSuccess>
-        <CallEmptyService service_name="save_map_node" timeout_sec="10.0" />
+        <CallEmptyService service_name="save_map" timeout_sec="10.0" />
       </ForceSuccess>
 
     </Sequence>
