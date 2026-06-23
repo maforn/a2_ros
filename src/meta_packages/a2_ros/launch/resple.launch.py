@@ -33,8 +33,8 @@ def generate_launch_description():
     map_saving_node = LaunchConfiguration('map_saving_node')
 
     return LaunchDescription([
-        DeclareLaunchArgument('rviz', default_value='false', description='Launch RViz2'),
-        DeclareLaunchArgument('use_sim_time', default_value='false', description='Use simulation time'),
+        DeclareLaunchArgument('rviz',            default_value='false', description='Launch RViz2'),
+        DeclareLaunchArgument('use_sim_time',    default_value='false', description='Use simulation time'),
         DeclareLaunchArgument('map_saving_node', default_value='false', description='Launch the MapSaving node'),
 
         Node(

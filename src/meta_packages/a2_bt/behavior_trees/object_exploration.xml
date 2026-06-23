@@ -69,7 +69,7 @@
           <!-- <Repeat num_cycles="-1">
             <Delay delay_msec="30000">
               <ForceSuccess>
-                <CallEmptyService service_name="save_map" />
+                <CallEmptyService service_name="save_map_node" />
               </ForceSuccess>
             </Delay>
           </Repeat> -->
@@ -88,7 +88,7 @@
            trip home — ForceSuccess so a save hiccup doesn't block
            navigation/sit below. -->
       <ForceSuccess>
-        <CallEmptyService service_name="save_map" />
+        <CallEmptyService service_name="save_map_node" />
       </ForceSuccess>
 
       <!-- 8. Resume movement so far_planner can drive the robot -->
@@ -106,7 +106,7 @@
       </ForceSuccess>
 
       <!-- 10. Save again once home (or once the nav attempt is done) -->
-      <CallEmptyService service_name="save_map" />
+      <CallEmptyService service_name="save_map_node" />
 
       <!-- 11. Sit -->
       <SetMode mode="1" wait_for_sec="3.0" />

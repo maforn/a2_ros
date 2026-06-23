@@ -68,11 +68,20 @@ ament_target_dependencies(scan_pose_sync
   geometry_msgs
 )
 
+add_executable(sim_lidar_adapter
+  src/sim_lidar_adapter.cpp
+)
+ament_target_dependencies(sim_lidar_adapter
+  rclcpp
+  sensor_msgs
+)
+
 install(TARGETS
   stand_example
   teleop_joy
   nav_vel_relay
   scan_pose_sync
+  sim_lidar_adapter
   DESTINATION lib/${PROJECT_NAME}
 )
 

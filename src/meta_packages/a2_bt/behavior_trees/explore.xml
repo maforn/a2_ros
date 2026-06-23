@@ -1,63 +1,48 @@
 <root BTCPP_format="4">
   <!--
-    Autonomous exploration mission with home return on completion or timeout.
-
-    Flow:
-      1. StartExploration  — triggers TARE via /start_exploration
-      2. SavePose          — captures current map-frame pose from DLIO as {home_pose}
-      3. Parallel phase    — runs WaitForExplorationFinish alongside placeholder tasks:
-           • SUCCESS (TARE done)    → Parallel succeeds → AlwaysSuccess passes through
-           • FAILURE (timeout)      → Parallel fails    → AlwaysSuccess absorbs failure
-         Either way, the outer Sequence continues.
-      4. NavigateToPose    — returns robot to the saved {home_pose}
+    Simple exploration: stand up, explore, go back to hardcoded home position.
 
     Usage:
-      ros2 action send_goal /bt_action_server behaviortree_ros2/action/ExecuteTree \
-        "{target_tree: 'Explore', payload: 'explore.xml'}"
-
-    Live status:
-      ros2 topic echo /bt/exploration_status
+      a2 bt tree explore
   -->
   <BehaviorTree ID="Explore">
     <Sequence>
 
+      <!-- Boot FSM -->
+      <SetMode mode="2" wait_for_sec="3.0" />
+      <SetMode mode="3" wait_for_sec="3.0" />
+      <SetMode mode="4" wait_for_sec="1.0" />
+
+      <!-- Hardcoded home position (map origin) -->
+      <CreatePose x="0.0" y="0.0" yaw="0.0" frame_id="map" pose="{home_pose}" />
+
+      <!-- Start exploration -->
       <StartExploration start_topic="/start_exploration" />
 
-      <!-- Capture starting position in map frame (DLIO) before exploring -->
-      <SavePose
-        pose_topic="dlio/odom_node/pose"
-        timeout_sec="5.0"
-        pose="{home_pose}" />
-
-      <!-- Exploration phase: exits when TARE finishes (SUCCESS) or times out (FAILURE).
-           ForceSuccess wraps the Parallel so the Sequence always proceeds to NavigateToPose. -->
+      <!-- Wait for TARE to finish (or timeout) -->
       <ForceSuccess>
-        <Parallel success_count="1" failure_count="1">
-
-          <WaitForExplorationFinish
-            finish_topic="exploration_finish"
-            status_topic="bt/exploration_status"
-            timeout_sec="300.0" />
-
-          <!-- Placeholder: future tasks to run in parallel during exploration.
-               KeepRunningUntilFailure(AlwaysSuccess) = runs forever until halted. -->
-          <KeepRunningUntilFailure>
-            <AlwaysSuccess />
-          </KeepRunningUntilFailure>
-
-        </Parallel>
+        <WaitForExplorationFinish
+          finish_topic="exploration_finish"
+          status_topic="bt/exploration_status"
+          timeout_sec="300.0" />
       </ForceSuccess>
 
-      <!-- Stop TARE waypoints; pathFollower is resumed by NavigateToPose -->
+      <!-- Stop TARE and pathFollower -->
       <StopExploration />
       <StopMovement />
 
-      <!-- Navigate back to saved starting position -->
-      <NavigateToPose
-        goal_pose="{home_pose}"
-        frame_id="map"
-        goal_topic="/goal_point"
-        timeout_sec="120.0" />
+      <!-- Resume movement and navigate home -->
+      <StopMovement data="0" />
+      <ForceSuccess>
+        <NavigateToPose
+          goal_pose="{home_pose}"
+          frame_id="map"
+          goal_topic="/goal_point"
+          timeout_sec="120.0" />
+      </ForceSuccess>
+
+      <!-- Sit -->
+      <SetMode mode="1" wait_for_sec="3.0" />
 
     </Sequence>
   </BehaviorTree>

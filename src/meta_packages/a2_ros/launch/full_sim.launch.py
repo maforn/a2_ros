@@ -1,17 +1,16 @@
 """
-Full simulation mission stack — sim + DLIO + navigate_and_explore + BT executor.
+Full simulation mission stack — sim (ground-truth) + navigate_and_explore + BT executor.
+
+Uses the sim bridge's built-in ground-truth odometry (dlio:=false, default).
+The bridge publishes /state_estimation, /registered_scan, and the map→base_link TF
+directly — no RESPLE needed in simulation.
 
 Starts:
-  - sim.launch.py            : MuJoCo + locomotion controller (dlio:=true mode —
-                               a2_bridge publishes IMU/joints only, DLIO provides odometry)
-  - dlio.launch.py           : LiDAR-inertial odometry (use_sim_time=true)
+  - sim.launch.py            : MuJoCo + locomotion controller (ground-truth odometry)
   - navigate_and_explore.launch.py : TARE + far_planner + detection_mapper
   - bt_executor.launch.py    : BT action server
 
 Usage:
-  ros2 launch a2_ros full_sim.launch.py
-  ros2 launch a2_ros full_sim.launch.py scene:=scene_obstacles.xml rviz:=true
-
   a2 sim-full
   a2 sim-full --rviz --scene scene_obstacles.xml --headless
 """
@@ -38,7 +37,7 @@ def generate_launch_description():
         DeclareLaunchArgument('scene',     default_value='scene_maze.xml'),
         DeclareLaunchArgument('headless',  default_value='false'),
 
-        # ---- MuJoCo sim in DLIO mode (a2_bridge publishes IMU/joints; DLIO provides /state_estimation) ----
+        # ---- MuJoCo sim — ground-truth mode (bridge publishes /state_estimation directly) ----
         PushLaunchConfigurations(),
         IncludeLaunchDescription(
             PythonLaunchDescriptionSource(os.path.join(a2_ros_launch_dir, 'sim.launch.py')),
@@ -46,18 +45,7 @@ def generate_launch_description():
                 'scene':    LaunchConfiguration('scene'),
                 'headless': LaunchConfiguration('headless'),
                 'rviz':     'false',
-                'dlio':     'true',   # suppress ground-truth TF; DLIO provides odometry
-            }.items(),
-        ),
-        PopLaunchConfigurations(),
-
-        # ---- DLIO odometry ----
-        PushLaunchConfigurations(),
-        IncludeLaunchDescription(
-            PythonLaunchDescriptionSource(os.path.join(a2_ros_launch_dir, 'dlio.launch.py')),
-            launch_arguments={
-                'use_sim_time': 'true',
-                'rviz':         'false',
+                'dlio':     'false',
             }.items(),
         ),
         PopLaunchConfigurations(),

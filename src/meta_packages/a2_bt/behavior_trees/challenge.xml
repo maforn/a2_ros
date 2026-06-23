@@ -1,0 +1,70 @@
+<root BTCPP_format="4">
+  <!--
+    Autonomous exploration mission with home return and map save on completion.
+
+    Flow:
+      1. SetMode 2/3/4           — boot FSM: stand → unlock → walk
+      2. SavePose                — capture start position as {home_pose}
+      3. StartExploration        — trigger TARE via /start_exploration
+      4. WaitForExplorationFinish — block until TARE reports done (or timeout)
+         (ForceSuccess absorbs timeout so the rest always runs)
+      5. StopExploration         — stop TARE waypoints
+      6. StopMovement            — halt pathFollower
+      7. StopMovement(0)         — resume movement for far_planner
+      8. NavigateToPose          — return to {home_pose}
+         (ForceSuccess absorbs nav failure so the map still gets saved)
+      9. CallEmptyService        — save map via resple MapSaving node
+      10. SetMode 1              — sit
+
+    Usage:
+      a2 bt tree challenge
+  -->
+  <BehaviorTree ID="Challenge">
+    <Sequence>
+
+      <!-- 1. Boot FSM -->
+      <SetMode mode="2" wait_for_sec="3.0" />
+      <SetMode mode="3" wait_for_sec="3.0" />
+      <SetMode mode="4" wait_for_sec="1.0" />
+
+       <!-- Hardcoded home position (map origin) -->
+      <CreatePose x="0.0" y="0.0" yaw="0.0" frame_id="map" pose="{home_pose}" />
+
+      <!-- 3. Trigger TARE exploration -->
+      <StartExploration start_topic="/start_exploration" />
+
+      <!-- 4. Wait for exploration to finish or time out. -->
+      <ForceSuccess>
+        <WaitForExplorationFinish
+          finish_topic="exploration_finish"
+          status_topic="bt/exploration_status"
+          timeout_sec="10.0" />
+      </ForceSuccess>
+
+      <!-- 5-6. Stop TARE waypoints and halt pathFollower -->
+      <StopExploration />
+      <StopMovement />
+
+      <!-- 7. Resume movement so far_planner can drive the robot -->
+      <StopMovement data="0" />
+
+      <!-- 8. Return home. -->
+      <ForceSuccess>
+        <NavigateToPose
+          goal_pose="{home_pose}"
+          frame_id="map"
+          goal_topic="/goal_point"
+          timeout_sec="120.0" />
+      </ForceSuccess>
+
+      <!-- 9. Save map -->
+      <ForceSuccess>
+        <CallEmptyService service_name="save_map" timeout_sec="10.0" />
+      </ForceSuccess>
+
+      <!-- 10. Sit -->
+      <SetMode mode="1" wait_for_sec="3.0" />
+
+    </Sequence>
+  </BehaviorTree>
+</root>
