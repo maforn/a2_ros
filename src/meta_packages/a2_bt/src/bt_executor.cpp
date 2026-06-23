@@ -13,13 +13,13 @@
 #include "a2_bt/get_object_pose.hpp"
 #include "a2_bt/save_image.hpp"
 #include "a2_bt/call_trigger_service.hpp"
+#include "a2_bt/call_empty_service.hpp"
 #include "a2_bt/start_exploration.hpp"
 #include "a2_bt/wait_for_exploration_finish.hpp"
 #include "a2_bt/is_exploration_finished.hpp"
 #include "a2_bt/save_pose.hpp"
 #include "a2_bt/stop_movement.hpp"
 #include "a2_bt/stop_exploration.hpp"
-#include "a2_bt/save_map.hpp"
 
 class A2BtExecutor : public BT::TreeExecutionServer
 {
@@ -37,6 +37,7 @@ protected:
     params.wait_for_server_timeout = std::chrono::milliseconds(5000);
 
     factory.registerNodeType<a2_bt::CallTriggerService>("CallTriggerService", params);
+    factory.registerNodeType<a2_bt::CallEmptyService>("CallEmptyService", params);
     factory.registerNodeType<a2_bt::CreatePose>("CreatePose");
     factory.registerNodeType<a2_bt::NavigateToPoseAction>("NavigateToPose", params);
     factory.registerNodeType<a2_bt::PublishTwist>("PublishTwist", params);
@@ -49,7 +50,6 @@ protected:
     factory.registerNodeType<a2_bt::SavePose>("SavePose", params);
     factory.registerNodeType<a2_bt::StopMovement>("StopMovement", params);
     factory.registerNodeType<a2_bt::StopExploration>("StopExploration", params);
-    factory.registerNodeType<a2_bt::SaveMap>("SaveMap", params);
   }
 
   // If payload is a filename, resolve it against the hardcoded trees directory

@@ -319,7 +319,7 @@ case "$CMD" in
     resple)
         RESPLE_ARGS=(rviz:=$RVIZ)
         [ "$A2_MODE" = "sim" ] && RESPLE_ARGS+=(use_sim_time:=true)
-        _run resple ros2 launch a2_ros resple.launch.py "${RESPLE_ARGS[@]}"
+        _run resple ros2 launch a2_ros resple.launch.py "${RESPLE_ARGS[@]}" "${ARGS[@]:1}"
         ;;
     bt)
         _run bt ros2 launch a2_bt bt_executor.launch.py

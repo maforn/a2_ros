@@ -21,7 +21,6 @@ find_package(sensor_msgs REQUIRED)
 find_package(cv_bridge REQUIRED)
 find_package(OpenCV REQUIRED)
 find_package(visualization_msgs REQUIRED)
-find_package(direct_lidar_inertial_odometry REQUIRED)
 
 set(DEPENDENCIES
   behaviortree_cpp
@@ -38,7 +37,6 @@ set(DEPENDENCIES
   sensor_msgs
   cv_bridge
   visualization_msgs
-  direct_lidar_inertial_odometry
 )
 
 # Creates a shared library BT plugin
@@ -65,13 +63,13 @@ target_include_directories(a2_bt_save_image_plugin PUBLIC
 ament_target_dependencies(a2_bt_save_image_plugin ${DEPENDENCIES})
 target_link_libraries(a2_bt_save_image_plugin ${OpenCV_LIBS})
 bt_plugin(a2_bt_call_trigger_service_plugin        plugins/call_trigger_service.cpp)
+bt_plugin(a2_bt_call_empty_service_plugin          plugins/call_empty_service.cpp)
 bt_plugin(a2_bt_start_exploration_plugin           plugins/start_exploration.cpp)
 bt_plugin(a2_bt_wait_for_exploration_finish_plugin plugins/wait_for_exploration_finish.cpp)
 bt_plugin(a2_bt_is_exploration_finished_plugin     plugins/is_exploration_finished.cpp)
 bt_plugin(a2_bt_save_pose_plugin                   plugins/save_pose.cpp)
 bt_plugin(a2_bt_stop_movement_plugin               plugins/stop_movement.cpp)
 bt_plugin(a2_bt_stop_exploration_plugin            plugins/stop_exploration.cpp)
-bt_plugin(a2_bt_save_map_plugin                    plugins/save_map.cpp)
 
 # ── Standalone nodes ──────────────────────────────────────────────────────────
 add_executable(detection_mapper src/detection_mapper.cpp)
@@ -94,13 +92,13 @@ target_link_libraries(bt_executor
   a2_bt_get_object_pose_plugin
   a2_bt_save_image_plugin
   a2_bt_call_trigger_service_plugin
+  a2_bt_call_empty_service_plugin
   a2_bt_start_exploration_plugin
   a2_bt_wait_for_exploration_finish_plugin
   a2_bt_is_exploration_finished_plugin
   a2_bt_save_pose_plugin
   a2_bt_stop_movement_plugin
   a2_bt_stop_exploration_plugin
-  a2_bt_save_map_plugin
 )
 
 install(TARGETS
@@ -112,11 +110,13 @@ install(TARGETS
   a2_bt_get_object_pose_plugin
   a2_bt_save_image_plugin
   a2_bt_call_trigger_service_plugin
+  a2_bt_call_empty_service_plugin
   a2_bt_start_exploration_plugin
   a2_bt_wait_for_exploration_finish_plugin
   a2_bt_is_exploration_finished_plugin
   a2_bt_save_pose_plugin
-  a2_bt_save_map_plugin
+  a2_bt_stop_movement_plugin
+  a2_bt_stop_exploration_plugin
   bt_executor
   ARCHIVE DESTINATION lib
   LIBRARY DESTINATION lib

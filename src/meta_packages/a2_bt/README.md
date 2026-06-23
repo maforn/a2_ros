@@ -88,7 +88,8 @@ SetMode STAND_UP → SetMode BALANCE_STAND → SetMode VELOCITY_MOVE
 | `NavigateToPose` | `NavigateToPose` | Sends a goal to FAR Planner via `/goal_point`, waits for `/far_reach_goal_status` |
 | `SaveImage` | `SaveImage` | Saves the next frame from an image topic to disk |
 | `CreatePose` | `CreatePose` | Utility: constructs a `PoseStamped` from x/y/yaw scalars |
-| `SaveMap` | `SaveMap` | Calls DLIO's `save_pcd` service to write the accumulated map to disk (`save_path`, `leaf_size` ports) |
+| `CallTriggerService` | `CallTriggerService` | Calls any `std_srvs/Trigger` service; SUCCESS if it reports `success=true` |
+| `CallEmptyService` | `CallEmptyService` | Calls any `std_srvs/Empty` service (e.g. resple's `save_map`); SUCCESS once it responds |
 
 ## FSM modes
 
