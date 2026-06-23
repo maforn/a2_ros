@@ -65,13 +65,13 @@ tare_planner_node:
     keypose_graph/kAddEdgeConnectDistThr : 2.0       # max distance to connect two nearby nodes with an edge (m)
     keypose_graph/kAddEdgeToLastKeyposeDistThr : 2.0 # max distance to connect node to last keypose (m)
     keypose_graph/kAddEdgeVerticalThreshold : 0.5    # max vertical gap for a valid graph edge (m)
-    keypose_graph/kAddEdgeCollisionCheckResolution : 0.3  # step size for edge collision checks (m)
-    keypose_graph/kAddEdgeCollisionCheckRadius : 0.3      # sphere radius for edge collision checks (m)
+    keypose_graph/kAddEdgeCollisionCheckResolution : 0.2  # step size for edge collision checks (m)
+    keypose_graph/kAddEdgeCollisionCheckRadius : 0.2      # sphere radius for edge collision checks (m)
     keypose_graph/kAddEdgeCollisionCheckPointNumThr : 1   # collision points needed to reject an edge
 
     # ViewPointManager — grid of candidate sensor poses for coverage planning
-    viewpoint_manager/number_x : 40    # viewpoint grid cells in X
-    viewpoint_manager/number_y : 40    # viewpoint grid cells in Y
+    viewpoint_manager/number_x : 50    # viewpoint grid cells in X
+    viewpoint_manager/number_y : 50    # viewpoint grid cells in Y
     viewpoint_manager/number_z : 1     # viewpoint grid cells in Z (1 = 2-D planning)
     viewpoint_manager/resolution_x : 0.2  # viewpoint cell size X (m)
     viewpoint_manager/resolution_y : 0.2  # viewpoint cell size Y (m)
@@ -79,7 +79,7 @@ tare_planner_node:
     kConnectivityHeightDiffThr : 0.25     # max height difference for two viewpoints to be connected (m)
     kGreedyViewPointSampleRange : 3       # candidates sampled per greedy selection step
     kLocalPathOptimizationItrMax : 10     # TSP optimization iterations for local path ordering
-    kViewPointCollisionMargin : 0.5       # XY safety margin around each viewpoint for collision (m) — ~A2 half-width
+    kViewPointCollisionMargin : 0.2       # XY safety margin around each viewpoint for collision (m) — ~A2 half-width
     kViewPointCollisionMarginZPlus : 0.4  # upward Z margin for viewpoint collision check (m)
     kViewPointCollisionMarginZMinus : 0.3 # downward Z margin for viewpoint collision check (m)
     kCollisionGridZScale : 1.0            # Z scale factor applied to collision grid
