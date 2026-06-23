@@ -4,7 +4,7 @@ Full real-robot mission stack — nuc + RESPLE + navigate_and_explore + object d
 Starts:
   - nuc.launch.py                   : LiDAR driver + robot_state_publisher + TF
   - resple.launch.py                : LiDAR-inertial odometry + MapSaving node
-  - navigate_and_explore.launch.py  : TARE + far_planner + detection_mapper
+  - navigate_and_explore.launch.py  : ALO + far_planner + detection_mapper
   - object_detection_real.launch.py : YOLO object detection (real robot variant)
   - bt_executor.launch.py           : BT action server
 
@@ -61,7 +61,7 @@ def generate_launch_description():
         ),
         PopLaunchConfigurations(),
 
-        # ---- TARE + far_planner + detection_mapper ----
+        # ---- ALO + far_planner + detection_mapper ----
         PushLaunchConfigurations(),
         IncludeLaunchDescription(
             PythonLaunchDescriptionSource(
@@ -70,6 +70,7 @@ def generate_launch_description():
             launch_arguments={
                 'use_sim_time': 'false',
                 'rviz':         LaunchConfiguration('rviz'),
+                'planner':      'alo',
             }.items(),
         ),
         PopLaunchConfigurations(),

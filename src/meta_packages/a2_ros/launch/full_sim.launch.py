@@ -7,13 +7,17 @@ directly — no RESPLE needed in simulation.
 
 Starts:
   - sim.launch.py                   : MuJoCo + locomotion controller (ground-truth odometry)
-  - navigate_and_explore.launch.py  : TARE + far_planner + detection_mapper
+  - navigate_and_explore.launch.py  : exploration planner + far_planner + detection_mapper
   - object_detection.launch.py      : YOLO object detection (sim variant)
   - bt_executor.launch.py           : BT action server
 
+  planner:=tare      TARE coverage planner (default)
+  planner:=frontier  Simple 2-D frontier explorer — more reliable in bounded enclosures
+
 Usage:
   a2 sim-full
-  a2 sim-full --rviz --scene scene_obstacles.xml --headless
+  a2 sim-full --rviz --scene scene_maze.xml --headless
+  ros2 launch a2_ros full_sim.launch.py planner:=frontier
 """
 
 import os
@@ -38,6 +42,8 @@ def generate_launch_description():
         DeclareLaunchArgument('rviz',      default_value='true'),
         DeclareLaunchArgument('scene',     default_value='scene_maze.xml'),
         DeclareLaunchArgument('headless',  default_value='false'),
+        DeclareLaunchArgument('planner',   default_value='alo',
+                              description='Exploration planner: "tare" or "alo"'),
 
         # ---- MuJoCo sim — ground-truth mode (bridge publishes /state_estimation directly) ----
         PushLaunchConfigurations(),
@@ -52,7 +58,7 @@ def generate_launch_description():
         ),
         PopLaunchConfigurations(),
 
-        # ---- TARE + far_planner + detection_mapper ----
+        # ---- exploration planner + far_planner + detection_mapper ----
         PushLaunchConfigurations(),
         IncludeLaunchDescription(
             PythonLaunchDescriptionSource(
@@ -61,18 +67,19 @@ def generate_launch_description():
             launch_arguments={
                 'use_sim_time': 'true',
                 'rviz':         LaunchConfiguration('rviz'),
+                'planner':      LaunchConfiguration('planner'),
             }.items(),
         ),
         PopLaunchConfigurations(),
 
-        # ---- Object detection (sim variant) ----
-        PushLaunchConfigurations(),
-        IncludeLaunchDescription(
-            PythonLaunchDescriptionSource(
-                os.path.join(detect_launch_dir, 'object_detection.launch.py')
-            ),
-        ),
-        PopLaunchConfigurations(),
+        # # ---- Object detection (sim variant) ----
+        # PushLaunchConfigurations(),
+        # IncludeLaunchDescription(
+        #     PythonLaunchDescriptionSource(
+        #         os.path.join(detect_launch_dir, 'object_detection.launch.py')
+        #     ),
+        # ),
+        # PopLaunchConfigurations(),
 
         # ---- BT executor ----
         PushLaunchConfigurations(),

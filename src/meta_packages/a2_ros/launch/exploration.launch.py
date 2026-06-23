@@ -1,31 +1,23 @@
 """
-Autonomous exploration launch for A2 simulation using TARE planner.
+Autonomous exploration launch for A2 simulation.
 
 Starts the full exploration stack on top of the running sim:
   - terrain_analysis     : builds /terrain_map from /registered_scan + /state_estimation
   - terrain_analysis_ext : builds /terrain_map_ext (global terrain)
   - local_planner        : obstacle-aware path selection
   - pathFollower         : converts waypoints to velocity, /nav_vel (twist_mux input)
-  - tare_planner         : autonomous coverage exploration (replaces far_planner)
+  - planner              : autonomous exploration (tare | frontier, see planner arg)
+
+  planner:=tare      TARE coverage planner (default)
+  planner:=frontier  Simple 2-D frontier explorer — more reliable in bounded enclosures
 
 Prerequisites (provided by sim.launch.py + a2_bridge):
-  /state_estimation  - ground-truth odometry (published by a2_bridge in a2_sim_utils)
-  /registered_scan   - world-frame lidar cloud (published by a2_bridge in a2_sim_utils)
-  /clock             - sim time clock (published by sim_clock in a2_sim_utils)
+  /state_estimation  - ground-truth odometry
+  /registered_scan   - world-frame lidar cloud
+  /clock             - sim time clock
 
 Usage:
-  # Terminal 1
-  ros2 launch a2_ros sim.launch.py scene:=scene_obstacles.xml
-
-  # Terminal 2
-  cd src/control/a2_locomotion_controller/scripts
-  ./control_mode.sh --stand
-  ./control_mode.sh --walk
-
-  # Terminal 3
-  ros2 launch a2_ros exploration.launch.py rviz:=true
-
-The robot will begin exploring autonomously.
+  ros2 launch a2_ros exploration.launch.py rviz:=true planner:=frontier
 """
 
 import os
@@ -33,7 +25,7 @@ from ament_index_python.packages import get_package_share_directory
 from launch import LaunchDescription
 from launch.actions import DeclareLaunchArgument
 from launch.conditions import IfCondition
-from launch.substitutions import LaunchConfiguration
+from launch.substitutions import LaunchConfiguration, PythonExpression
 from launch_ros.actions import Node, SetParameter
 
 
@@ -55,9 +47,19 @@ def generate_launch_description():
         description='Use simulation clock (sim time)'
     )
 
+    planner_arg = DeclareLaunchArgument(
+        'planner',
+        default_value='alo',
+        description='Exploration planner: "tare" or "alo"'
+    )
+
+    is_tare = IfCondition(PythonExpression(["'", LaunchConfiguration('planner'), "' == 'tare'"]))
+    is_alo  = IfCondition(PythonExpression(["'", LaunchConfiguration('planner'), "' == 'alo'"]))
+
     nodes = [
         rviz_arg,
         use_sim_time_arg,
+        planner_arg,
         SetParameter(name='use_sim_time', value=LaunchConfiguration('use_sim_time')),
 
         # ---- terrain analysis (local map) ----
@@ -154,8 +156,8 @@ def generate_launch_description():
                 'dirThre':             90.0,
                 'dirToVehicle':        False,
                 'pathScale':           1.0,
-                'minPathScale':        0.75,
-                'pathScaleStep':       0.25,
+                'minPathScale':        0.5,
+                'pathScaleStep':       0.1,
                 'pathScaleBySpeed':    True,
                 'minPathRange':        1.0,
                 'pathRangeStep':       0.5,
@@ -165,7 +167,7 @@ def generate_launch_description():
                 'autonomySpeed':       2.0,
                 'joyToSpeedDelay':     2.0,
                 'joyToCheckObstacleDelay': 5.0,
-                'goalClearRange':      0.4,
+                'goalClearRange':      0.3,
                 'goalX':               0.0,
                 'goalY':               0.0,
             }],
@@ -208,13 +210,37 @@ def generate_launch_description():
             }],
         ),
 
-        # ---- TARE planner (autonomous exploration) ----
+        # ---- TARE planner (autonomous exploration, planner:=tare) ----
         Node(
             package='tare_planner',
             executable='tare_planner_node',
             name='tare_planner_node',
             output='screen',
             parameters=[tare_config],
+            condition=is_tare,
+        ),
+
+        # ---- ALO exploration planner (planner:=alo) ----
+        Node(
+            package='a2_ros',
+            executable='alo.py',
+            name='alo',
+            output='screen',
+            parameters=[{
+                'resolution':          0.25,   # m/cell
+                'grid_half_width':     80.0,   # m each side → 160 m total grid
+                'z_min_rel':          -0.3,    # point height relative to robot Z
+                'z_max_rel':           1.5,
+                'max_ray_range':       10.0,   # m — clip rays beyond this
+                'reach_dist':          1.5,    # m — waypoint considered reached
+                'robot_clear_radius':  0.6,    # m — footprint cleared as FREE each tick
+                'nav_clearance':       0.25,   # m — min wall clearance for NBV candidates
+                'wp_timeout':         30.0,    # s — blacklist wp if not reached in time
+                'planning_hz':         1.0,    # replanning rate
+                'wp_publish_hz':       2.0,    # waypoint re-publish rate
+                'done_timeout':        8.0,    # s with no frontiers → done
+            }],
+            condition=is_alo,
         ),
 
         # ---- Detection mapper: accumulates YOLO detections into a deduplicated

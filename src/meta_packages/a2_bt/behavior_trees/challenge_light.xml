@@ -11,7 +11,7 @@
       <!-- 2. Hardcode home position -->
       <CreatePose x="0.0" y="0.0" yaw="0.0" frame_id="map" pose="{home_pose}" />
 
-      <!-- 4. Trigger TARE exploration -->
+      <!-- 4. Trigger ALO exploration -->
       <StartExploration start_topic="/start_exploration" />
 
       <!-- 5. Wait for exploration to finish or time out. -->
@@ -22,7 +22,7 @@
           timeout_sec="300.0" />
       </ForceSuccess>
 
-      <!-- 6-7. Stop TARE waypoints and halt pathFollower -->
+      <!-- 6-7. Stop ALO waypoints and halt pathFollower -->
       <StopExploration />
       <StopMovement />
 

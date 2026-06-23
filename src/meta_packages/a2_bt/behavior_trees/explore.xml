@@ -19,7 +19,7 @@
       <!-- Start exploration -->
       <StartExploration start_topic="/start_exploration" />
 
-      <!-- Wait for TARE to finish (or timeout) -->
+      <!-- Wait for ALO to finish (or timeout) -->
       <ForceSuccess>
         <WaitForExplorationFinish
           finish_topic="exploration_finish"
@@ -27,7 +27,7 @@
           timeout_sec="300.0" />
       </ForceSuccess>
 
-      <!-- Stop TARE and pathFollower -->
+      <!-- Stop ALO and pathFollower -->
       <StopExploration />
       <StopMovement />
 
