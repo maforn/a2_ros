@@ -57,15 +57,18 @@ class FrontierExplorer(Node):
         self.nav_clr  = self.declare_parameter('nav_clearance',      0.5).value   # m — min wall clearance for wp
         self.wp_tmo   = self.declare_parameter('wp_timeout',        30.0).value   # s — blacklist if not reached
         self.done_tmo = self.declare_parameter('done_timeout',       8.0).value   # s — confirm no frontiers
+        self.occ_thresh = self.declare_parameter('occ_hit_threshold', 2).value    # hits before cell → OCC
+        self.hit_decay  = self.declare_parameter('occ_hit_decay',    0.95).value  # hit decay per plan tick
         plan_hz       = self.declare_parameter('planning_hz',        1.0).value
         wp_hz         = self.declare_parameter('wp_publish_hz',      2.0).value
         viz_hz        = self.declare_parameter('viz_hz',             1.0).value
 
         # ── grid ─────────────────────────────────────────────────────────
         n = int(2 * half_w / self.res) + 1
-        self.n      = n
-        self.grid   = np.zeros((n, n), dtype=np.uint8)  # UNKNOWN everywhere
-        self.origin = np.zeros(2)  # world XY of cell (0,0)
+        self.n        = n
+        self.grid     = np.zeros((n, n), dtype=np.uint8)   # UNKNOWN everywhere
+        self._hit_grid = np.zeros((n, n), dtype=np.float32) # accumulated OCC hits
+        self.origin   = np.zeros(2)  # world XY of cell (0,0)
 
         # ── state ────────────────────────────────────────────────────────
         self.robot_xy   = np.zeros(2)
@@ -86,6 +89,9 @@ class FrontierExplorer(Node):
         # The LiDAR sees over low barriers → marks cells beyond as FREE → creates frontiers
         # the robot can never reach.  Suppress those cells so they don't attract new waypoints.
         self._suppressed: np.ndarray = np.zeros((n, n), dtype=bool)
+        # Noise-filtered OCC view computed each plan tick: isolated OCC cells
+        # (no 4-connected OCC neighbor) are treated as passable for planning.
+        self._occ_filtered: np.ndarray = np.zeros((n, n), dtype=bool)
 
         # ── ROS I/O ───────────────────────────────────────────────────────
         self.create_subscription(PointCloud2, '/registered_scan',   self._cb_scan,  10)
@@ -121,14 +127,16 @@ class FrontierExplorer(Node):
                 return
             hw = (self.n // 2) * self.res
             self.origin     = self.robot_xy - hw
-            self.grid[:]    = UNKNOWN
+            self.grid[:]     = UNKNOWN
+            self._hit_grid[:] = 0.0
             self.current_wp  = None
             self.wp_set_t    = None
             self.no_front_t  = None
             self._blacklist  = []
             self._viz_frontiers = np.zeros((0, 2), dtype=int)
             self._visit_grid[:]  = 0.0
-            self._suppressed[:]  = False
+            self._suppressed[:]   = False
+            self._occ_filtered[:] = False
             self._prev_xy    = self.robot_xy.copy()
             self._heading    = np.zeros(2)
             self.exploring   = True
@@ -204,7 +212,16 @@ class FrontierExplorer(Node):
             in_b = 0 <= r < n and 0 <= c < n
             if r == r1 and c == c1:
                 if in_b:
-                    self.grid[r, c] = OCC if occ_end else FREE
+                    if occ_end:
+                        # Accumulate hits; only commit to OCC once threshold is met.
+                        # Single noisy returns never reach the threshold and decay away.
+                        hits = self._hit_grid[r, c] + 1.0
+                        self._hit_grid[r, c] = hits
+                        if hits >= self.occ_thresh:
+                            self.grid[r, c] = OCC
+                    else:
+                        self._hit_grid[r, c] = 0.0
+                        self.grid[r, c] = FREE
                 break
             if in_b and self.grid[r, c] != OCC:
                 self.grid[r, c] = FREE
@@ -220,6 +237,7 @@ class FrontierExplorer(Node):
         cs = np.arange(c0, c1, dtype=float)
         rr, cc = np.meshgrid(rs, cs, indexing='ij')
         inside = ((rr - gx)**2 + (cc - gy)**2) <= (self.clear_r / self.res)**2
+        self._hit_grid[r0:r1, c0:c1][inside] = 0.0
         self.grid[r0:r1, c0:c1][inside] = FREE
 
     # ── frontier detection ─────────────────────────────────────────────────
@@ -247,7 +265,7 @@ class FrontierExplorer(Node):
         # break connectivity between two otherwise-reachable explored regions.
         # The OCC mask ensures we never route through walls.
         free_dilated    = binary_dilation(self.grid == FREE, iterations=1)
-        passable        = (free_dilated & (self.grid != OCC)).astype(np.int8)
+        passable        = (free_dilated & ~self._occ_filtered).astype(np.int8)
         labeled, _      = nd_label(passable)
         robot_lbl       = labeled[r0, c0]
         if robot_lbl == 0:
@@ -346,8 +364,24 @@ class FrontierExplorer(Node):
         if not self.exploring:
             return
 
+        # Decay only unconfirmed hit counts (below threshold).
+        # Once a cell is confirmed OCC its count is frozen — it stays OCC until a
+        # FREE ray explicitly passes through it (which zeros the count in _mark_ray).
+        # This means walls the robot isn't currently looking at are never erased.
+        unconfirmed = self._hit_grid < self.occ_thresh
+        self._hit_grid[unconfirmed] *= self.hit_decay
+
         self._update_grid()
         now = time.monotonic()
+
+        # ── Noise-filtered OCC view ───────────────────────────────────────
+        # Isolated OCC cells (no 4-connected OCC neighbor) are single-point
+        # noise; real walls are always connected. Don't modify the stored grid
+        # to avoid oscillation — just use this view for planning queries.
+        _occ = self.grid == OCC
+        _has_nb = (np.roll(_occ, 1, 0) | np.roll(_occ, -1, 0) |
+                   np.roll(_occ, 1, 1) | np.roll(_occ, -1, 1))
+        self._occ_filtered = _occ & _has_nb
 
         # ── Visit density stamp ───────────────────────────────────────────
         # Decay all cells slightly, then mark current robot position.
@@ -467,8 +501,9 @@ class FrontierExplorer(Node):
         msg.info.origin.position.y    = float(self.origin[1])
         msg.info.origin.orientation.w = 1.0
         g    = self.grid.T
+        occ  = self._occ_filtered.T
         data = np.where(g == FREE, np.int8(0),
-               np.where(g == OCC,  np.int8(100), np.int8(-1)))
+               np.where(occ,       np.int8(100), np.int8(-1)))
         msg.data = data.flatten().tolist()
         self.pub_map.publish(msg)
 

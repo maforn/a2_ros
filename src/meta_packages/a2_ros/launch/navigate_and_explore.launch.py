@@ -108,7 +108,7 @@ def generate_launch_description():
                 'z_max_rel':           1.5,
                 'max_ray_range':       10.0,
                 'reach_dist':          1.5,
-                'robot_clear_radius':  0.6,
+                'robot_clear_radius':  0.3,
                 'nav_clearance':       0.25,   # m — min wall clearance for NBV candidates
                 'wp_timeout':         30.0,    # s — blacklist wp if not reached in time
                 'planning_hz':         1.0,

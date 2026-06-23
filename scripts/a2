@@ -41,6 +41,7 @@ _stack_pattern() {
         nav)         echo "navigation.launch.py" ;;
         explore)     echo "exploration.launch.py" ;;
         nav-explore) echo "navigate_and_explore.launch.py" ;;
+        alo)         echo "navigate_and_explore.launch.py" ;;
         sim-full)    echo "full_sim.launch.py" ;;
         nuc-full)    echo "full_nuc.launch.py" ;;
         dlio)        echo "dlio.launch.py" ;;
@@ -120,7 +121,8 @@ Robot:
   keyboard           Keyboard teleop -> /cmd_vel (robot must be in walk mode)
   nav   [--rviz]     Launch navigation stack
   explore [--rviz]   Launch autonomous exploration (TARE)
-  nav-explore [--rviz]  Launch exploration + far_planner (for BT trees that navigate home)
+  alo   [--rviz]     Launch ALO exploration + far_planner (cluster frontier planner)
+  nav-explore [--rviz]  Launch exploration + far_planner (planner selectable, default alo)
   sim-full [--rviz] [--headless] [--scene <file>]
                      Full sim mission stack: sim + DLIO + nav-explore in one launch
   nuc-full [--rviz]  Full real-robot mission stack: nuc + DLIO + nav-explore in one launch
@@ -297,6 +299,11 @@ case "$CMD" in
         [ "$A2_MODE" = "sim" ] && EXPLORE_ARGS+=(use_sim_time:=true)
         _run explore ros2 launch a2_ros exploration.launch.py "${EXPLORE_ARGS[@]}" "${ARGS[@]:1}"
         ;;
+    alo)
+        ALO_ARGS=(rviz:=$RVIZ planner:=alo)
+        [ "$A2_MODE" = "sim" ] && ALO_ARGS+=(use_sim_time:=true)
+        _run alo ros2 launch a2_ros navigate_and_explore.launch.py "${ALO_ARGS[@]}" "${ARGS[@]:1}"
+        ;;
     nav-explore)
         NAV_EXPLORE_ARGS=(rviz:=$RVIZ)
         [ "$A2_MODE" = "sim" ] && NAV_EXPLORE_ARGS+=(use_sim_time:=true)
@@ -413,7 +420,7 @@ case "$CMD" in
     ps)
         # Show which managed stacks are currently running, with their PIDs.
         FOUND=false
-        for s in sim nav explore nav-explore sim-full nuc-full dlio resple bt detect foxglove plotjuggler; do
+        for s in sim nav explore alo nav-explore sim-full nuc-full dlio resple bt detect foxglove plotjuggler; do
             PIDS="$(_stack_pids "$(_stack_pattern "$s")" | tr '\n' ' ')"
             if [[ -n "${PIDS// }" ]]; then
                 info "$(printf '%-12s' "$s") ${PIDS}"
@@ -430,7 +437,7 @@ case "$CMD" in
             PAT="$(_stack_pattern "$TARGET")" || { error "Unknown stack: $TARGET"; exit 1; }
             _kill_stale "$PAT"
         else
-            for s in sim nav explore nav-explore sim-full nuc-full dlio resple bt detect foxglove plotjuggler; do
+            for s in sim nav explore alo nav-explore sim-full nuc-full dlio resple bt detect foxglove plotjuggler; do
                 _kill_stale "$(_stack_pattern "$s")"
             done
         fi
