@@ -88,6 +88,7 @@ SetMode STAND_UP → SetMode BALANCE_STAND → SetMode VELOCITY_MOVE
 | `NavigateToPose` | `NavigateToPose` | Sends a goal to FAR Planner via `/goal_point`, waits for `/far_reach_goal_status` |
 | `SaveImage` | `SaveImage` | Saves the next frame from an image topic to disk |
 | `CreatePose` | `CreatePose` | Utility: constructs a `PoseStamped` from x/y/yaw scalars |
+| `SaveMap` | `SaveMap` | Calls DLIO's `save_pcd` service to write the accumulated map to disk (`save_path`, `leaf_size` ports) |
 
 ## FSM modes
 

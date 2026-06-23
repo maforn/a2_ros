@@ -14,7 +14,7 @@ cd "$WORKSPACE_DIR"
 # verbatim). The CLI flag overrides parallel-workers from $COLCON_DEFAULTS_FILE.
 # Override the worker count with A2_BUILD_JOBS.
 CORES="$(nproc 2>/dev/null || echo 2)"
-JOBS="${A2_BUILD_JOBS:-$(( CORES / 2 ))}"
+JOBS="${A2_BUILD_JOBS:-$(( CORES / 16 ))}"
 [[ "$JOBS" -lt 1 ]] && JOBS=1
 info "Parallel workers: ${JOBS} (of ${CORES} cores)"
 

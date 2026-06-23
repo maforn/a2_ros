@@ -9,14 +9,18 @@
       2. SavePose              — capture start position as {home_pose}
       3. CallTriggerService    — start detection mapper (clears previous list)
       4. StartExploration      — trigger TARE via /start_exploration
-      5. ForceSuccess          — run exploration; absorb timeout FAILURE so
-           WaitForExplorationFinish   the Sequence always continues
+      5. Parallel              — run exploration alongside a periodic SaveMap
+           WaitForExplorationFinish   checkpoint (every 30s) so a crash only
+           Repeat/Delay/SaveMap       loses progress since the last checkpoint
       6. CallTriggerService    — stop detection mapper
       7. NavigateToPose        — return to {home_pose}
-      8. SetMode 1             — sit
+      8. SaveMap               — final save of the completed map
+      9. SetMode 1             — sit
 
     After the mission, detected objects remain published on
-    /detected_objects_markers and logged in the detection_mapper node.
+    /detected_objects_markers and logged in the detection_mapper node. The
+    DLIO map is saved to /tmp/dlio_maps/object_exploration (dlio_map.pcd /
+    clean_map.pcd) via DLIO's save_pcd service.
 
     Usage:
       ros2 action send_goal /bt_action_server behaviortree_ros2/action/ExecuteTree \
@@ -44,14 +48,28 @@
       <!-- 5. Trigger TARE exploration -->
       <StartExploration start_topic="/start_exploration" />
 
-      <!-- 5. Wait for exploration to finish or time out.
+      <!-- 5. Wait for exploration to finish or time out, while periodically
+           checkpointing the DLIO map every 30s in case of a crash.
            ForceSuccess absorbs FAILURE (timeout) so the Sequence always
-           continues to the stop + home steps. -->
+           continues to the stop + home steps. The Parallel halts the
+           Repeat/Delay/SaveMap branch as soon as exploration completes. -->
       <ForceSuccess>
-        <WaitForExplorationFinish
-          finish_topic="exploration_finish"
-          status_topic="bt/exploration_status"
-          timeout_sec="300.0" />
+        <Parallel success_count="1" failure_count="1">
+
+          <WaitForExplorationFinish
+            finish_topic="exploration_finish"
+            status_topic="bt/exploration_status"
+            timeout_sec="300.0" />
+
+          <Repeat num_cycles="-1">
+            <Delay delay_msec="30000">
+              <ForceSuccess>
+                <SaveMap save_path="/tmp/dlio_maps/object_exploration" />
+              </ForceSuccess>
+            </Delay>
+          </Repeat>
+
+        </Parallel>
       </ForceSuccess>
 
       <!-- 6. Stop TARE waypoints and halt pathFollower -->
@@ -71,7 +89,10 @@
         goal_topic="/goal_point"
         timeout_sec="120.0" />
 
-      <!-- 9. Sit -->
+      <!-- 9. Final save of the completed map -->
+      <SaveMap save_path="/tmp/dlio_maps/object_exploration" />
+
+      <!-- 10. Sit -->
       <SetMode mode="1" wait_for_sec="3.0" />
 
     </Sequence>
