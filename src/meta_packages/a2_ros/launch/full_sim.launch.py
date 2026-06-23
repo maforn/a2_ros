@@ -6,13 +6,9 @@ The bridge publishes /state_estimation, /registered_scan, and the map→base_lin
 directly — no RESPLE needed in simulation.
 
 Starts:
-<<<<<<< HEAD
-  - sim.launch.py            : MuJoCo + locomotion controller (ground-truth odometry)
-=======
   - sim.launch.py            : MuJoCo + locomotion controller (dlio:=true mode —
                                a2_bridge publishes IMU/joints only, DLIO provides odometry)
   - resple.launch.py         : LiDAR-inertial odometry (use_sim_time=true)
->>>>>>> origin/dev
   - navigate_and_explore.launch.py : TARE + far_planner + detection_mapper
   - bt_executor.launch.py    : BT action server
 
