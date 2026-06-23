@@ -1,16 +1,15 @@
 """
-Full simulation mission stack — sim (ground-truth) + navigate_and_explore + BT executor.
+Full simulation mission stack — sim (ground-truth) + navigate_and_explore + object detection + BT executor.
 
 Uses the sim bridge's built-in ground-truth odometry (dlio:=false, default).
 The bridge publishes /state_estimation, /registered_scan, and the map→base_link TF
 directly — no RESPLE needed in simulation.
 
 Starts:
-  - sim.launch.py            : MuJoCo + locomotion controller (dlio:=true mode —
-                               a2_bridge publishes IMU/joints only, DLIO provides odometry)
-  - resple.launch.py         : LiDAR-inertial odometry (use_sim_time=true)
-  - navigate_and_explore.launch.py : TARE + far_planner + detection_mapper
-  - bt_executor.launch.py    : BT action server
+  - sim.launch.py                   : MuJoCo + locomotion controller (ground-truth odometry)
+  - navigate_and_explore.launch.py  : TARE + far_planner + detection_mapper
+  - object_detection.launch.py      : YOLO object detection (sim variant)
+  - bt_executor.launch.py           : BT action server
 
 Usage:
   a2 sim-full
@@ -31,8 +30,9 @@ from launch.substitutions import LaunchConfiguration
 
 
 def generate_launch_description():
-    a2_ros_launch_dir = os.path.join(get_package_share_directory('a2_ros'), 'launch')
-    a2_bt_launch_dir  = os.path.join(get_package_share_directory('a2_bt'), 'launch')
+    a2_ros_launch_dir  = os.path.join(get_package_share_directory('a2_ros'), 'launch')
+    a2_bt_launch_dir   = os.path.join(get_package_share_directory('a2_bt'), 'launch')
+    detect_launch_dir  = os.path.join(get_package_share_directory('object_detection'), 'launch')
 
     return LaunchDescription([
         DeclareLaunchArgument('rviz',      default_value='true'),
@@ -62,6 +62,15 @@ def generate_launch_description():
                 'use_sim_time': 'true',
                 'rviz':         LaunchConfiguration('rviz'),
             }.items(),
+        ),
+        PopLaunchConfigurations(),
+
+        # ---- Object detection (sim variant) ----
+        PushLaunchConfigurations(),
+        IncludeLaunchDescription(
+            PythonLaunchDescriptionSource(
+                os.path.join(detect_launch_dir, 'object_detection.launch.py')
+            ),
         ),
         PopLaunchConfigurations(),
 

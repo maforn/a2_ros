@@ -1,23 +1,25 @@
 <root BTCPP_format="4">
   <!--
-    Autonomous exploration mission with home return and map save on completion.
+    Autonomous exploration mission with home return, object detection, and map save.
 
     Flow:
       1. SetMode 2/3/4           — boot FSM: stand → unlock → walk
-      2. SavePose                — capture start position as {home_pose}
-      3. StartExploration        — trigger TARE via /start_exploration
-      4. WaitForExplorationFinish — block until TARE reports done (or timeout)
+      2. CreatePose              — hardcode start position as {home_pose}
+      3. detection_mapper/start  — reset and start accumulating detections
+      4. StartExploration        — trigger TARE via /start_exploration
+      5. WaitForExplorationFinish — block until TARE reports done (or timeout)
          (ForceSuccess absorbs timeout so the rest always runs)
-      5. StopExploration         — stop TARE waypoints
-      6. StopMovement            — halt pathFollower
-      7. StopMovement(0)         — resume movement for far_planner
-      8. NavigateToPose          — return to {home_pose}
-         (ForceSuccess absorbs nav failure so the map still gets saved)
-      9. CallEmptyService        — save map via resple MapSaving node
-      10. SetMode 1              — sit
+      6. StopExploration         — stop TARE waypoints
+      7. StopMovement            — halt pathFollower
+      8. detection_mapper/stop   — stop accumulating detections
+      9. detection_mapper/save_csv — save detections to CSV
+      10. StopMovement(0)        — resume movement for far_planner
+      11. NavigateToPose         — return to {home_pose}
+      12. CallEmptyService       — save map via resple MapSaving node
+      13. SetMode 1              — sit
 
     Usage:
-      a2 bt tree challenge
+      a2 tree challenge
   -->
   <BehaviorTree ID="Challenge">
     <Sequence>
@@ -27,28 +29,35 @@
       <SetMode mode="3" wait_for_sec="3.0" />
       <SetMode mode="4" wait_for_sec="1.0" />
 
-       <!-- Hardcoded home position (map origin) -->
+      <!-- 2. Hardcode home position -->
       <CreatePose x="0.0" y="0.0" yaw="0.0" frame_id="map" pose="{home_pose}" />
 
-      <!-- 3. Trigger TARE exploration -->
+      <!-- 3. Start detection mapper (resets accumulated object list) -->
+      <CallTriggerService service_name="detection_mapper/start" />
+
+      <!-- 4. Trigger TARE exploration -->
       <StartExploration start_topic="/start_exploration" />
 
-      <!-- 4. Wait for exploration to finish or time out. -->
+      <!-- 5. Wait for exploration to finish or time out. -->
       <ForceSuccess>
         <WaitForExplorationFinish
           finish_topic="exploration_finish"
           status_topic="bt/exploration_status"
-          timeout_sec="10.0" />
+          timeout_sec="300.0" />
       </ForceSuccess>
 
-      <!-- 5-6. Stop TARE waypoints and halt pathFollower -->
+      <!-- 6-7. Stop TARE waypoints and halt pathFollower -->
       <StopExploration />
       <StopMovement />
 
-      <!-- 7. Resume movement so far_planner can drive the robot -->
+      <!-- 8-9. Stop detection mapper and save detections to CSV -->
+      <CallTriggerService service_name="detection_mapper/stop" />
+      <CallTriggerService service_name="detection_mapper/save_csv" />
+
+      <!-- 10. Resume movement so far_planner can drive the robot -->
       <StopMovement data="0" />
 
-      <!-- 8. Return home. -->
+      <!-- 11. Return home. ForceSuccess absorbs nav failure. -->
       <ForceSuccess>
         <NavigateToPose
           goal_pose="{home_pose}"
@@ -57,12 +66,12 @@
           timeout_sec="120.0" />
       </ForceSuccess>
 
-      <!-- 9. Save map -->
+      <!-- 12. Save map -->
       <ForceSuccess>
-        <CallEmptyService service_name="save_map" timeout_sec="10.0" />
+        <CallEmptyService service_name="save_map_node" timeout_sec="10.0" />
       </ForceSuccess>
 
-      <!-- 10. Sit -->
+      <!-- 13. Sit -->
       <SetMode mode="1" wait_for_sec="3.0" />
 
     </Sequence>

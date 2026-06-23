@@ -1,11 +1,12 @@
 """
-Full real-robot mission stack — nuc + RESPLE + navigate_and_explore + BT executor.
+Full real-robot mission stack — nuc + RESPLE + navigate_and_explore + object detection + BT executor.
 
 Starts:
-  - nuc.launch.py                  : LiDAR driver + robot_state_publisher + TF
-  - resple.launch.py               : LiDAR-inertial odometry + MapSaving node
-  - navigate_and_explore.launch.py : TARE + far_planner + detection_mapper
-  - bt_executor.launch.py          : BT action server
+  - nuc.launch.py                   : LiDAR driver + robot_state_publisher + TF
+  - resple.launch.py                : LiDAR-inertial odometry + MapSaving node
+  - navigate_and_explore.launch.py  : TARE + far_planner + detection_mapper
+  - object_detection_real.launch.py : YOLO object detection (real robot variant)
+  - bt_executor.launch.py           : BT action server
 
 Usage:
   ros2 launch a2_ros full_nuc.launch.py
@@ -29,8 +30,9 @@ from launch.substitutions import LaunchConfiguration
 
 
 def generate_launch_description():
-    a2_ros_launch_dir = os.path.join(get_package_share_directory('a2_ros'), 'launch')
-    a2_bt_launch_dir  = os.path.join(get_package_share_directory('a2_bt'), 'launch')
+    a2_ros_launch_dir  = os.path.join(get_package_share_directory('a2_ros'), 'launch')
+    a2_bt_launch_dir   = os.path.join(get_package_share_directory('a2_bt'), 'launch')
+    detect_launch_dir  = os.path.join(get_package_share_directory('object_detection'), 'launch')
 
     return LaunchDescription([
         DeclareLaunchArgument('rviz',         default_value='false'),
@@ -69,6 +71,15 @@ def generate_launch_description():
                 'use_sim_time': 'false',
                 'rviz':         LaunchConfiguration('rviz'),
             }.items(),
+        ),
+        PopLaunchConfigurations(),
+
+        # ---- Object detection (real robot variant) ----
+        PushLaunchConfigurations(),
+        IncludeLaunchDescription(
+            PythonLaunchDescriptionSource(
+                os.path.join(detect_launch_dir, 'object_detection_real.launch.py')
+            ),
         ),
         PopLaunchConfigurations(),
 
