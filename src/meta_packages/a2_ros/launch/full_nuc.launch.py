@@ -75,13 +75,13 @@ def generate_launch_description():
         PopLaunchConfigurations(),
 
         # ---- Object detection (real robot variant) ----
-        PushLaunchConfigurations(),
-        IncludeLaunchDescription(
-            PythonLaunchDescriptionSource(
-                os.path.join(detect_launch_dir, 'object_detection_real.launch.py')
-            ),
-        ),
-        PopLaunchConfigurations(),
+        # PushLaunchConfigurations(),
+        # IncludeLaunchDescription(
+        #     PythonLaunchDescriptionSource(
+        #         os.path.join(detect_launch_dir, 'object_detection_real.launch.py')
+        #     ),
+        # ),
+        # PopLaunchConfigurations(),
 
         # ---- BT executor ----
         PushLaunchConfigurations(),
