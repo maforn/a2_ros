@@ -1,0 +1,48 @@
+<root BTCPP_format="4">
+  <!--
+    Autonomous exploration mission with home return and map save.
+
+    Usage:
+      a2 tree challenge
+  -->
+  <BehaviorTree ID="ChallengeLight">
+    <Sequence>
+
+      <!-- 2. Hardcode home position -->
+      <CreatePose x="0.0" y="0.0" yaw="0.0" frame_id="map" pose="{home_pose}" />
+
+      <!-- 4. Trigger TARE exploration -->
+      <StartExploration start_topic="/start_exploration" />
+
+      <!-- 5. Wait for exploration to finish or time out. -->
+      <ForceSuccess>
+        <WaitForExplorationFinish
+          finish_topic="exploration_finish"
+          status_topic="bt/exploration_status"
+          timeout_sec="300.0" />
+      </ForceSuccess>
+
+      <!-- 6-7. Stop TARE waypoints and halt pathFollower -->
+      <StopExploration />
+      <StopMovement />
+
+      <!-- 10. Resume movement so far_planner can drive the robot -->
+      <StopMovement data="0" />
+
+      <!-- 11. Return home. ForceSuccess absorbs nav failure. -->
+      <ForceSuccess>
+        <NavigateToPose
+          goal_pose="{home_pose}"
+          frame_id="map"
+          goal_topic="/goal_point"
+          timeout_sec="120.0" />
+      </ForceSuccess>
+
+      <!-- 12. Save map -->
+      <ForceSuccess>
+        <CallEmptyService service_name="save_map_node" timeout_sec="10.0" />
+      </ForceSuccess>
+
+    </Sequence>
+  </BehaviorTree>
+</root>
