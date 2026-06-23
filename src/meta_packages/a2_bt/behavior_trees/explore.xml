@@ -27,7 +27,7 @@
       <SavePose
         pose_topic="/state_estimation"
         timeout_sec="5.0"
-        pose="{home_pose}" />
+        pose="{home_pose}"/>
 
       <!-- Exploration phase: exits when TARE finishes (SUCCESS) or times out (FAILURE).
            ForceSuccess wraps the Parallel so the Sequence always proceeds to NavigateToPose. -->

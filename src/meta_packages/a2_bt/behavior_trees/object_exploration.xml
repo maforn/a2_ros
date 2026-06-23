@@ -58,8 +58,9 @@
       <StopExploration />
       <StopMovement />
 
-      <!-- 7. Stop detection mapper -->
+      <!-- 7. Stop detection mapper and save results to CSV -->
       <CallTriggerService service_name="detection_mapper/stop" />
+      <CallTriggerService service_name="detection_mapper/save_csv" />
 
       <!-- 8. Resume movement so far_planner can drive the robot -->
       <StopMovement data="0" />

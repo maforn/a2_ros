@@ -46,6 +46,7 @@ DetectionMapperNode::DetectionMapperNode(const rclcpp::NodeOptions & options)
   cluster_radius_      = declare_parameter<double>("cluster_radius",       1.0);
   min_confidence_      = static_cast<float>(declare_parameter<double>("min_confidence", 0.4));
   marker_ns_           = declare_parameter<std::string>("marker_ns",       "detected_objects");
+  csv_path_            = declare_parameter<std::string>("csv_path",        "/tmp/detections.csv");
   const double hz      = declare_parameter<double>("detection_hz",         2.0);
 
   tf_buffer_   = std::make_shared<tf2_ros::Buffer>(get_clock());
@@ -67,8 +68,11 @@ DetectionMapperNode::DetectionMapperNode(const rclcpp::NodeOptions & options)
   start_srv_ = create_service<Trigger>(
     "detection_mapper/start",
     [this](Trigger::Request::SharedPtr, Trigger::Response::SharedPtr resp) {
-      objects_.clear();
-      next_id_ = 0;
+      {
+        std::lock_guard<std::mutex> lk(objects_mtx_);
+        objects_.clear();
+        next_id_ = 0;
+      }
       running_ = true;
       RCLCPP_INFO(get_logger(), "[DetectionMapper] Started — object list cleared");
       resp->success = true;
@@ -79,18 +83,57 @@ DetectionMapperNode::DetectionMapperNode(const rclcpp::NodeOptions & options)
     "detection_mapper/stop",
     [this](Trigger::Request::SharedPtr, Trigger::Response::SharedPtr resp) {
       running_ = false;
+      std::size_t n;
+      {
+        std::lock_guard<std::mutex> lk(objects_mtx_);
+        n = objects_.size();
+      }
       RCLCPP_INFO(get_logger(),
-        "[DetectionMapper] Stopped — %zu objects accumulated", objects_.size());
+        "[DetectionMapper] Stopped — %zu objects accumulated", n);
       resp->success = true;
-      resp->message = "Detection mapper stopped, " +
-                      std::to_string(objects_.size()) + " objects stored";
+      resp->message = "Detection mapper stopped, " + std::to_string(n) + " objects stored";
+    });
+
+  save_csv_srv_ = create_service<Trigger>(
+    "detection_mapper/save_csv",
+    [this](Trigger::Request::SharedPtr, Trigger::Response::SharedPtr resp) {
+      std::vector<DetectedObject> snapshot;
+      {
+        std::lock_guard<std::mutex> lk(objects_mtx_);
+        snapshot = objects_;
+      }
+
+      std::ofstream f(csv_path_);
+      if (!f.is_open()) {
+        const std::string msg = "Failed to open: " + csv_path_;
+        RCLCPP_ERROR(get_logger(), "[DetectionMapper] %s", msg.c_str());
+        resp->success = false;
+        resp->message = msg;
+        return;
+      }
+
+      f << "id,class,x,y,z\n";
+      for (const auto & obj : snapshot) {
+        f << obj.id << ","
+          << obj.class_id << ","
+          << obj.position.x << ","
+          << obj.position.y << ","
+          << obj.position.z << "\n";
+      }
+
+      RCLCPP_INFO(get_logger(),
+        "[DetectionMapper] Saved %zu detections → %s",
+        snapshot.size(), csv_path_.c_str());
+      resp->success = true;
+      resp->message = "Saved " + std::to_string(snapshot.size()) +
+                      " detections to " + csv_path_;
     });
 
   RCLCPP_INFO(get_logger(),
     "[DetectionMapper] Ready (idle). topic=%s frame=%s cluster_r=%.1f m "
-    "conf>=%.2f rate=%.1f Hz — call ~/start to begin",
+    "conf>=%.2f rate=%.1f Hz csv=%s — call ~/start to begin",
     det_topic.c_str(), output_frame_.c_str(),
-    cluster_radius_, min_confidence_, hz);
+    cluster_radius_, min_confidence_, hz, csv_path_.c_str());
 }
 
 void DetectionMapperNode::detectionCb(
@@ -113,6 +156,8 @@ void DetectionMapperNode::processTick()
     detections = latest_;
     has_new_   = false;
   }
+
+  std::lock_guard<std::mutex> obj_lk(objects_mtx_);
 
   for (const auto & info : detections->info) {
     if (info.confidence < min_confidence_) continue;

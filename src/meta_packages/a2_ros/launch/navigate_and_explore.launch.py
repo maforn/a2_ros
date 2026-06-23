@@ -69,7 +69,7 @@ def generate_launch_description():
             name='terrainAnalysis',
             output='screen',
             parameters=[{
-                'scanVoxelSize':       0.05,
+                'scanVoxelSize':       0.1,    # 0.05→0.1: coarser voxels reduce noise hits
                 'decayTime':           10.0,
                 'noDecayDis':          0.0,
                 'clearingDis':         8.0,
@@ -88,12 +88,12 @@ def generate_launch_description():
                 'minDyObsPointNum':    1,
                 'noDataObstacle':      False,
                 'noDataBlockSkipNum':  0,
-                'minBlockPointNum':    10,
+                'minBlockPointNum':    20,   # 10→20: need more points to declare obstacle cell
                 'vehicleHeight':       0.5,
                 'voxelPointUpdateThre': 100,
                 'voxelTimeUpdateThre': 2.0,
                 'minRelZ':             -1.0,
-                'maxRelZ':             1.0,
+                'maxRelZ':             1.5,  # 1.0→1.5: pass gate beams up to 1.5 m to local_planner
                 'disRatioZ':           0.2,
             }],
         ),
@@ -115,7 +115,7 @@ def generate_launch_description():
                 'voxelPointUpdateThre': 100,
                 'voxelTimeUpdateThre':  2.0,
                 'lowerBoundZ':          -1.0,
-                'upperBoundZ':          1.0,
+                'upperBoundZ':          1.5,  # 1.0→1.5: consistent with terrain_analysis maxRelZ
                 'disRatioZ':            0.1,
                 'checkTerrainConn':     True,
                 'terrainUnderVehicle':  -0.75,
@@ -144,14 +144,14 @@ def generate_launch_description():
                 'checkObstacle':       True,
                 'checkRotObstacle':    True,
                 'adjacentRange':       3.5,
-                'obstacleHeightThre':  0.25,
+                'obstacleHeightThre':  0.30,  # 0.25→0.30: ignore bumps under 30 cm
                 'groundHeightThre':    0.1,
                 'costHeightThre':      0.1,
                 'costScore':           0.02,
                 'useCost':             False,
-                'pointPerPathThre':    2,
+                'pointPerPathThre':    3,    # 2→3: need 3 blocked points per path (less noise)
                 'minRelZ':             -0.5,
-                'maxRelZ':             0.8,
+                'maxRelZ':             1.2,  # 0.8→1.2: detect obstacles/gate beams up to 1.2 m
                 'maxSpeed':            0.5,
                 'dirWeight':           0.1,
                 'dirThre':             90.0,
@@ -249,6 +249,7 @@ def generate_launch_description():
                 'min_confidence':  0.4,
                 'detection_hz':    2.0,
                 'marker_ns':       'detected_objects',
+                'csv_path':        '/tmp/detections.csv',
             }],
         ),
 
