@@ -39,6 +39,15 @@ ENV USER=${USER}
 
 RUN : "${UID:?UID build arg is required}" && : "${GID:?GID build arg is required}"
 
+# image_proc provides image_proc::RectifyNode, used on the consumer side (NUC) to
+# JPEG-decode the compressed camera stream and undistort it in one node
+# (see object_detection_real.launch.py). Not shipped in the a2_base image, and
+# baked here in the shared stage so both the dev and robot targets have it.
+RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
+    --mount=type=cache,target=/var/lib/apt,sharing=locked \
+    apt-get update && apt-get install -y --no-install-recommends \
+    ros-${ROS_DISTRO}-image-proc
+
 # ubuntu user already exists in ros:jazzy base (from ubuntu:noble) at UID 1000.
 # Remap to the host UID/GID so bind-mounted files have correct ownership.
 RUN groupmod -g ${GID} ubuntu && usermod -u ${UID} -g ${GID} ubuntu

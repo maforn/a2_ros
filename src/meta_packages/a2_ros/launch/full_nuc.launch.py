@@ -4,8 +4,9 @@ Full real-robot mission stack — nuc + RESPLE + navigate_and_explore + object d
 Starts:
   - nuc.launch.py                   : LiDAR driver + robot_state_publisher + TF
   - resple.launch.py                : LiDAR-inertial odometry + MapSaving node
+  - rectify.launch.py              : decompress + rectify camera -> /camera/image_rect
+  - object_detection_real          : YOLO object detection (consumes /camera/image_rect)
   - navigate_and_explore.launch.py  : TARE + far_planner + detection_mapper
-  - object_detection_real.launch.py : YOLO object detection (real robot variant)
   - bt_executor.launch.py           : BT action server
 
 Usage:
@@ -27,6 +28,7 @@ from launch.actions import (
 )
 from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch.substitutions import LaunchConfiguration
+from launch_ros.actions import SetRemap
 
 
 def generate_launch_description():
@@ -58,6 +60,27 @@ def generate_launch_description():
                 'rviz':            'false',
                 'map_saving_node': 'true',
             }.items(),
+        ),
+        PopLaunchConfigurations(),
+
+        # ---- Camera decompress + rectify (-> /camera/image_rect) ----
+        PushLaunchConfigurations(),
+        IncludeLaunchDescription(
+            PythonLaunchDescriptionSource(os.path.join(a2_ros_launch_dir, 'rectify.launch.py')),
+        ),
+        PopLaunchConfigurations(),
+
+        # ---- Object detection (YOLO) ----
+        # The object_detection launch hardcodes its camera_topic param to
+        # <camera>/image_raw. Rather than fork that submodule, remap the subscription
+        # onto the rectified stream here. SetRemap is scoped by Push/Pop and
+        # propagates into the included launch's node.
+        PushLaunchConfigurations(),
+        SetRemap(src='/camera/image_raw', dst='/camera/image_rect'),
+        IncludeLaunchDescription(
+            PythonLaunchDescriptionSource(
+                os.path.join(detection_launch_dir, 'object_detection_real.launch.py')
+            ),
         ),
         PopLaunchConfigurations(),
 
