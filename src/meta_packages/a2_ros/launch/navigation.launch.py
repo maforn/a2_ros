@@ -226,7 +226,7 @@ def generate_launch_description():
             package='far_planner',
             executable='far_planner',
             name='far_planner',
-            output='screen',
+            output='log',
             # Run headless: no X display in container/SSH, so force Qt offscreen
             # to avoid the xcb plugin aborting (SIGABRT). Planning still works;
             # use RViz instead of the FAR Planner GUI for visualization.

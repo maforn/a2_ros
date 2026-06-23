@@ -225,7 +225,7 @@ def generate_launch_description():
             package='far_planner',
             executable='far_planner',
             name='far_planner',
-            output='screen',
+            output='log',
             additional_env={'QT_QPA_PLATFORM': 'offscreen'},
             parameters=[far_config],
             remappings=[
