@@ -65,16 +65,16 @@ localPlanner:
     costHeightThre:             0.1
     costScore:                  0.02
     useCost:                    false
-    pointPerPathThre:           2     # fewer points needed to block a path — less spurious blocking
+    pointPerPathThre:           4     # needs more obstacle points to declare a path blocked — less door-frame blocking
     minRelZ:                    -0.5
     maxRelZ:                    1.2
-    maxSpeed:                   0.3 # reduce max speed
-    dirWeight:                  0.02  # lowered so the planner doesn't reject lateral paths near doors
-    dirThre:                    90.0
+    maxSpeed:                   0.3
+    dirWeight:                  0.02
+    dirThre:                    60.0  # tighter cone — stops hunting sideways when forward is tight
     dirToVehicle:               false
     pathScale:                  1.0
-    minPathScale:               0.5   # try down to 50 % scale — needed for 0.6 m doors
-    pathScaleStep:              0.1   # fine steps so the smallest feasible scale is found
+    minPathScale:               0.3   # try down to 30 % scale — commits harder through 0.6 m doors
+    pathScaleStep:              0.05
     pathScaleBySpeed:           true
     minPathRange:               1.0
     pathRangeStep:              0.5
@@ -84,7 +84,7 @@ localPlanner:
     autonomySpeed:              1.0
     joyToSpeedDelay:            2.0
     joyToCheckObstacleDelay:    5.0
-    goalClearRange:             0.3   # stop closer to goal so the robot commits to passing the door
+    goalClearRange:             0.2   # stop closer to goal so the robot commits to passing the door
     goalX:                      0.0
     goalY:                      0.0
 

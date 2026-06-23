@@ -1,0 +1,36 @@
+alo:
+  ros__parameters:
+    # Grid
+    resolution:          0.25    # m/cell — 0.6 m door = 2.4 cells; don't go coarser
+    grid_half_width:     80.0    # m each side → 641×641 grid total
+
+    # Point-cloud height filter (relative to robot body z from /state_estimation)
+    z_min_rel:          -0.65     # include points this far below robot center
+    z_max_rel:           1.5     # include points this far above robot center
+
+    # Ray tracing
+    max_ray_range:       10.0    # m — clip rays beyond this (open-air returns)
+
+    # Waypoint logic
+    reach_dist:          1.2     # m — waypoint considered reached
+    min_wp_dist:         1.5     # m — minimum distance to advance per waypoint; keep low so
+                                 #     the planner can set a goal just past a narrow gap
+    wp_timeout:          30.0    # s — blacklist waypoint if not reached in time
+
+    # Robot footprint
+    robot_clear_radius:  0.6     # m — cells within this radius stamped FREE each tick
+
+    # Navigation clearance (approach waypoint selection)
+    nav_clearance:       0.2     # m — minimum wall clearance for waypoint candidates
+
+    # Noise filtering — hit-count accumulator
+    occ_hit_threshold:   2       # consecutive hits required to confirm a cell OCC
+    occ_hit_decay:       0.95    # unconfirmed hit decay factor per plan tick
+
+    # Timers
+    planning_hz:         1.0     # Hz — replanning rate
+    wp_publish_hz:       2.0     # Hz — waypoint re-publish rate (keeps FAR planner fed)
+    viz_hz:              1.0     # Hz — RViz map/marker publish rate
+
+    # Completion detection
+    done_timeout:        8.0     # s — confirm no reachable frontiers before declaring done

@@ -41,6 +41,7 @@ def generate_launch_description():
     nav_config   = os.path.join(a2_ros_dir, 'config', 'autonomy', 'navigation_a2.yaml')
     tare_config  = os.path.join(a2_ros_dir, 'config', 'autonomy', 'tare_a2.yaml')
     far_config   = os.path.join(a2_ros_dir, 'config', 'autonomy', 'far_a2.yaml')
+    alo_config   = os.path.join(a2_ros_dir, 'config', 'autonomy', 'alo_a2.yaml')
     path_folder  = get_package_share_directory('local_planner') + '/paths'
 
     is_tare = IfCondition(PythonExpression(["'", LaunchConfiguration('planner'), "' == 'tare'"]))
@@ -101,20 +102,7 @@ def generate_launch_description():
             executable='alo.py',
             name='alo',
             output='screen',
-            parameters=[{
-                'resolution':          0.25,   # m/cell — 0.6 m door = 2.4 cells, don't go finer
-                'grid_half_width':     80.0,   # m each side → 640×640 grid total
-                'z_min_rel':          -0.3,
-                'z_max_rel':           1.5,
-                'max_ray_range':       10.0,
-                'reach_dist':          1.5,
-                'robot_clear_radius':  0.3,
-                'nav_clearance':       0.25,   # m — min wall clearance for NBV candidates
-                'wp_timeout':         30.0,    # s — blacklist wp if not reached in time
-                'planning_hz':         1.0,
-                'wp_publish_hz':       2.0,
-                'done_timeout':        8.0,
-            }],
+            parameters=[alo_config],
             condition=is_alo,
         ),
 

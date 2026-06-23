@@ -34,6 +34,7 @@ def generate_launch_description():
     a2_ros_dir      = get_package_share_directory('a2_ros')
     rviz_path        = os.path.join(a2_ros_dir, 'rviz', 'exploration.rviz')
     tare_config      = os.path.join(a2_ros_dir, 'config', 'autonomy', 'tare_a2.yaml')
+    alo_config       = os.path.join(a2_ros_dir, 'config', 'autonomy', 'alo_a2.yaml')
 
     rviz_arg = DeclareLaunchArgument(
         'rviz',
@@ -226,20 +227,7 @@ def generate_launch_description():
             executable='alo.py',
             name='alo',
             output='screen',
-            parameters=[{
-                'resolution':          0.25,   # m/cell
-                'grid_half_width':     80.0,   # m each side → 160 m total grid
-                'z_min_rel':          -0.3,    # point height relative to robot Z
-                'z_max_rel':           1.5,
-                'max_ray_range':       10.0,   # m — clip rays beyond this
-                'reach_dist':          1.5,    # m — waypoint considered reached
-                'robot_clear_radius':  0.6,    # m — footprint cleared as FREE each tick
-                'nav_clearance':       0.25,   # m — min wall clearance for NBV candidates
-                'wp_timeout':         30.0,    # s — blacklist wp if not reached in time
-                'planning_hz':         1.0,    # replanning rate
-                'wp_publish_hz':       2.0,    # waypoint re-publish rate
-                'done_timeout':        8.0,    # s with no frontiers → done
-            }],
+            parameters=[alo_config],
             condition=is_alo,
         ),
 
