@@ -190,7 +190,7 @@ def generate_launch_description():
                 'lookAheadDis':     0.4,
                 'yawRateGain':      5.0,
                 'stopYawRateGain':  4.0,
-                'maxYawRate':       45.0,
+                'maxYawRate':       30.0,
                 'maxSpeed':         0.5,
                 'maxAccel':         2.0,
                 'switchTimeThre':   1.0,

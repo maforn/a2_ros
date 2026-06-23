@@ -6,6 +6,8 @@ far_planner:
 
     # Sensor
     sensor_range:   10.0   # lidar cutoff 10 m
+    terrain_range: 10.0
+    local_planner_range: 5.0
 
     # Planning
     main_run_freq:  2.5
@@ -16,8 +18,10 @@ far_planner:
     voxel_dim: 0.2          # increase to 0.3 if contours are noisy
 
     # Goal
-    converge_distance: 0.5
+    g_planner/converge_distance: 0.5
 
     # Dynamic obstacle decay
-    dynamic_obs_decay_time: 2.0
+    util/dynamic_obs_dacay_time: 2.0
     g_planner/path_momentum_thred: 2 
+
+    util/terrain_free_Z: 0.2
