@@ -64,7 +64,7 @@ def generate_launch_description():
             parameters=[{
                 'input_topic':  '/front_lidar/points',
                 'target_frame': 'map',
-                'tf_lag_sec':   0.025,
+                'tf_lag_sec':   0.25,
             }],
         ),
 
