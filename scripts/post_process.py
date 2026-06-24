@@ -729,11 +729,7 @@ window.addEventListener('mouseup', e => {
   const [sx, sy] = canvasCoords(e);
   const moved = pressScreen && Math.hypot(sx - pressScreen[0], sy - pressScreen[1]) > 3;
   if (dragging >= 0) {
-    if (moved) {
-      pushHistory();
-      const d = detections[dragging];
-      d.z = nearestZ(d.x, d.y);
-    }
+    if (moved) pushHistory();  // reposition only — leave z untouched
     dragging = -1;
     render();
     pressScreen = null;
@@ -743,7 +739,7 @@ window.addEventListener('mouseup', e => {
     const cls = window.prompt('Class name for new detection:', classColor.size ? Array.from(classColor.keys())[classColor.size - 1] : 'object');
     if (cls) {
       pushHistory();
-      detections.push({ id: nextId(), class: cls, x: pressWorld[0], y: pressWorld[1], z: nearestZ(pressWorld[0], pressWorld[1]), confidence: null });
+      detections.push({ id: nextId(), class: cls, x: pressWorld[0], y: pressWorld[1], z: 0, confidence: null });
       render();
     }
   }
