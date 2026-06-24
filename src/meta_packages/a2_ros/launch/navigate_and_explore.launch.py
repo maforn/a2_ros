@@ -54,18 +54,6 @@ def generate_launch_description():
                               description='Exploration planner: "tare" or "alo"'),
         SetParameter(name='use_sim_time', value=LaunchConfiguration('use_sim_time')),
 
-        # FAR planner reads the frame_id from /state_estimation and looks up
-        # map→<that_frame> if they differ. On the real robot the PC2 runs DLIO
-        # which publishes /state_estimation with frame_id="dlio_odom" over Zenoh.
-        # This identity TF lets FAR planner resolve map→dlio_odom without error.
-        Node(
-            package='tf2_ros',
-            executable='static_transform_publisher',
-            name='map_to_dlio_odom_tf',
-            arguments=['0', '0', '0', '0', '0', '0', 'map', 'dlio_odom'],
-            parameters=[{'use_sim_time': LaunchConfiguration('use_sim_time')}],
-        ),
-
         # Transforms raw /front_lidar/points → /alo/scan (map frame, no voxel filter).
         # Publishes to /alo/scan (not /registered_scan) so RESPLE's downsampled
         # /registered_scan stays intact for FAR planner and terrain analysis.
@@ -144,7 +132,11 @@ def generate_launch_description():
             additional_env={'QT_QPA_PLATFORM': 'offscreen'},
             parameters=[far_config],
             remappings=[
-                ('/odom_world',          '/state_estimation'),
+                # Use RESPLE's /odometry (frame=world) instead of /state_estimation.
+                # /state_estimation is shared with DLIO on PC2 (frame=dlio_odom) over Zenoh,
+                # causing FAR planner to look up map→dlio_odom (unconnected trees).
+                # /odometry is a relative topic — only RESPLE's Mapping node publishes it.
+                ('/odom_world',          '/odometry'),
                 ('/terrain_cloud',       '/terrain_map_ext'),
                 ('/scan_cloud',          '/registered_scan'),
                 ('/terrain_local_cloud', '/terrain_map'),
