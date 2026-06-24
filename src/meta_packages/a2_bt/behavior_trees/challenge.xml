@@ -1,44 +1,38 @@
 <root BTCPP_format="4">
   <!--
-    Autonomous exploration mission with home return, object detection, and map save.
+    Autonomous exploration mission with object detection, home return, and map save.
 
     Flow:
-      1. SetMode 2/3/4           — boot FSM: stand → unlock → walk
-      2. CreatePose              — hardcode start position as {home_pose}
-      3. detection_mapper/start  — reset and start accumulating detections
-      4. StartExploration        — trigger TARE via /start_exploration
-      5. WaitForExplorationFinish — block until TARE reports done (or timeout)
+      1. CreatePose              — hardcode start position as {home_pose}
+      2. detection_mapper/start  — reset and start accumulating detections
+      3. StartExploration        — trigger ALO via /start_exploration
+      4. WaitForExplorationFinish — block until ALO reports done (or timeout)
          (ForceSuccess absorbs timeout so the rest always runs)
-      6. StopExploration         — stop TARE waypoints
-      7. StopMovement            — halt pathFollower
-      8. detection_mapper/stop   — stop accumulating detections
-      9. detection_mapper/save_csv — save detections to CSV
-      10. StopMovement(0)        — resume movement for far_planner
-      11. NavigateToPose         — return to {home_pose}
-      12. CallEmptyService       — save map via resple MapSaving node
-      13. SetMode 1              — sit
+      5. StopExploration         — stop ALO waypoints
+      6. StopMovement            — halt pathFollower
+      7. detection_mapper/stop   — stop accumulating detections
+      8. detection_mapper/save_csv — persist detections to CSV
+      9. StopMovement(0)         — resume movement for far_planner
+      10. NavigateToPose         — return to {home_pose}
+      11. save_map_node          — save RESPLE map
+      12. detection_mapper/save_csv (second call) — ensure CSV is flushed after nav
 
     Usage:
-      a2 tree challenge
+      a2 bt tree challenge
   -->
   <BehaviorTree ID="Challenge">
     <Sequence>
 
-      <!-- 1. Boot FSM -->
-      <SetMode mode="2" wait_for_sec="3.0" />
-      <SetMode mode="3" wait_for_sec="3.0" />
-      <SetMode mode="4" wait_for_sec="1.0" />
-
-      <!-- 2. Hardcode home position -->
+      <!-- 1. Hardcode home position -->
       <CreatePose x="0.0" y="0.0" yaw="0.0" frame_id="map" pose="{home_pose}" />
 
-      <!-- 3. Start detection mapper (resets accumulated object list) -->
+      <!-- 2. Reset detection accumulator and start collecting -->
       <CallTriggerService service_name="detection_mapper/start" />
 
-      <!-- 4. Trigger TARE exploration -->
+      <!-- 3. Trigger ALO exploration -->
       <StartExploration start_topic="/start_exploration" />
 
-      <!-- 5. Wait for exploration to finish or time out. -->
+      <!-- 4. Wait for exploration to finish or time out -->
       <ForceSuccess>
         <WaitForExplorationFinish
           finish_topic="exploration_finish"
@@ -46,18 +40,20 @@
           timeout_sec="300.0" />
       </ForceSuccess>
 
-      <!-- 6-7. Stop TARE waypoints and halt pathFollower -->
+      <!-- 5-6. Stop ALO waypoints and halt pathFollower -->
       <StopExploration />
       <StopMovement />
 
-      <!-- 8-9. Stop detection mapper and save detections to CSV -->
+      <!-- 7-8. Stop detection mapper and persist detections to CSV -->
       <CallTriggerService service_name="detection_mapper/stop" />
-      <CallTriggerService service_name="detection_mapper/save_csv" />
+      <ForceSuccess>
+        <CallTriggerService service_name="detection_mapper/save_csv" />
+      </ForceSuccess>
 
-      <!-- 10. Resume movement so far_planner can drive the robot -->
+      <!-- 9. Resume movement so far_planner can drive the robot -->
       <StopMovement data="0" />
 
-      <!-- 11. Return home. ForceSuccess absorbs nav failure. -->
+      <!-- 10. Return home. ForceSuccess absorbs nav failure. -->
       <ForceSuccess>
         <NavigateToPose
           goal_pose="{home_pose}"
@@ -66,13 +62,15 @@
           timeout_sec="120.0" />
       </ForceSuccess>
 
-      <!-- 12. Save map -->
+      <!-- 11. Save RESPLE map -->
       <ForceSuccess>
         <CallEmptyService service_name="save_map_node" timeout_sec="10.0" />
       </ForceSuccess>
 
-      <!-- 13. Sit -->
-      <SetMode mode="1" wait_for_sec="3.0" />
+      <!-- 12. Final CSV flush after navigation (catches any detections during home return) -->
+      <ForceSuccess>
+        <CallTriggerService service_name="detection_mapper/save_csv" />
+      </ForceSuccess>
 
     </Sequence>
   </BehaviorTree>
