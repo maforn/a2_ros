@@ -79,6 +79,7 @@ public:
     res_       = declare_parameter("resolution",          0.15);
     half_w_    = declare_parameter("grid_half_width",    40.0);
     z_max_rel_ = declare_parameter("z_max_rel",           1.8);
+    z_max_abs_ = declare_parameter("z_max_abs",           1e9);  // absolute world-Z ceiling (default: no limit)
     ray_max_   = declare_parameter("max_ray_range",        7.0);
     reach_d_   = declare_parameter("reach_dist",           1.0);
     min_wp_d_  = declare_parameter("min_wp_dist",          1.2);
@@ -474,7 +475,7 @@ private:
     // Z thresholds in world frame (gs_z_min/max are offsets from robot body Z)
     const float z_bot = float(rz_) + float(gs_z_min_);  // below → ignore
     const float z_gnd = float(rz_) + float(gs_z_max_);  // below → ground
-    const float z_top = float(rz_) + float(z_max_rel_); // above → ceiling
+    const float z_top = std::min(float(rz_) + float(z_max_rel_), float(z_max_abs_)); // above → ceiling
 
     // ── Pass 1: range + FOV filter → voxel downsample ─────────────────────
     // Filter first so the voxel grid only contains points that are within the
@@ -735,7 +736,7 @@ private:
 
   // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━  members  ━━━━━━━━━━━━━━━━━━
 
-  double res_, half_w_, z_max_rel_, ray_max_, fov_half_;
+  double res_, half_w_, z_max_rel_, z_max_abs_, ray_max_, fov_half_;
   double reach_d_, min_wp_d_, clear_r_, nav_clr_, min_nav_clr_, wp_tmo_, done_tmo_, hit_decay_;
   double gs_z_min_, gs_z_max_, voxel_size_;
   std::string lidar_topic_;
