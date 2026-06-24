@@ -24,6 +24,12 @@ detections can be corrected by eye in the browser:
     uv run scripts/post_process.py --edit --bag data/bag_20260101_120000
     uv run scripts/post_process.py --edit --bag data/run1 --image-topic /camera/image/compressed
 Requires `ffmpeg` on PATH (used once at startup to mux the bag's frames into an mp4).
+
+If the bag carries the global-localization TF (a dynamic `world`/`map` -> robot
+transform, i.e. it was recorded/replayed with RESPLE/DLIO running), the editor also
+draws the camera's path on the map as a red arrow pinned to the current video frame,
+with the travelled trace behind it — so an object spotted in the video can be placed
+on the map by where the pointer is. Bags without that TF just omit the overlay.
 """
 
 from __future__ import annotations
@@ -246,6 +252,119 @@ def load_bag_frames(bag_path: Path, image_topic: str) -> list[tuple[float, objec
     return frames
 
 
+def _quat_to_matrix(x: float, y: float, z: float, w: float) -> np.ndarray:
+    """Rotation matrix for a (x, y, z, w) quaternion."""
+    return np.array([
+        [1 - 2 * (y * y + z * z), 2 * (x * y - z * w),     2 * (x * z + y * w)],
+        [2 * (x * y + z * w),     1 - 2 * (x * x + z * z), 2 * (y * z - x * w)],
+        [2 * (x * z - y * w),     2 * (y * z + x * w),     1 - 2 * (x * x + y * y)],
+    ])
+
+
+def _tf_to_RT(tr) -> tuple[np.ndarray, np.ndarray]:
+    t = tr.transform.translation
+    q = tr.transform.rotation
+    return _quat_to_matrix(q.x, q.y, q.z, q.w), np.array([t.x, t.y, t.z])
+
+
+def _compose(a: tuple, b: tuple) -> tuple:
+    """Compose two (R, t) rigid transforms: a applied to b (a @ b)."""
+    Ra, ta = a
+    Rb, tb = b
+    return Ra @ Rb, Ra @ tb + ta
+
+
+def _invert(rt: tuple) -> tuple:
+    R, t = rt
+    return R.T, -R.T @ t
+
+
+def extract_camera_trajectory(bag_path: Path, video_t0: float, camera_frame: str = "camera_link") -> list[list[float]]:
+    """Reconstruct the camera's path over the map from the bag's TF tree.
+
+    The robot pose lives in `/tf`, not in any odometry topic: RESPLE/DLIO publishes the
+    localization edge `world -> <body>` (the only dynamic transform whose parent is the
+    map-fixed `world`/`map`/`odom` frame), and the camera hangs off the robot through a
+    chain of static transforms. We pick that localization edge, walk the static tree from
+    its moving child down to `camera_frame`, and compose the two at every timestamp to get
+    world->camera. `world` is the same frame the global map is stored in (a2_ros publishes
+    an identity world<->map TF), so these x/y plot directly on the map.
+
+    Returns rows of [t, x, y, hx, hy]: t is seconds relative to `video_t0` (the first
+    camera frame, so it lines up with video playback time), x/y the camera position in the
+    map frame, and (hx, hy) the unit ground-projection of the camera's forward (+x) axis —
+    i.e. which way it is looking. Returns [] if the bag has no global localization TF.
+    """
+    import collections
+
+    from rosbags.highlevel import AnyReader
+
+    static: dict[tuple[str, str], tuple] = {}
+    dynamic: list[tuple[float, tuple[str, str], tuple]] = []
+    counts: collections.Counter = collections.Counter()
+    positions: dict[tuple[str, str], list] = collections.defaultdict(list)
+
+    with AnyReader([bag_path]) as reader:
+        cons = [c for c in reader.connections if c.topic in ("/tf", "/tf_static")]
+        for connection, timestamp, rawdata in reader.messages(connections=cons):
+            msg = reader.deserialize(rawdata, connection.msgtype)
+            for tr in msg.transforms:
+                key = (tr.header.frame_id, tr.child_frame_id)
+                RT = _tf_to_RT(tr)
+                if connection.topic == "/tf_static":
+                    static[key] = RT
+                else:
+                    counts[key] += 1
+                    t = tr.transform.translation
+                    positions[key].append((t.x, t.y, t.z))
+                    dynamic.append((timestamp / 1e9, key, RT))
+
+    # The localization edge is the dynamic transform that actually moves and is anchored to
+    # a map-fixed root. Prefer a world/map/odom parent; fall back to the most-moving edge.
+    roots = {"world", "map", "odom"}
+    def score(key):
+        spread = float(np.std(np.array(positions[key]), axis=0).sum()) if positions[key] else 0.0
+        return (key[0] in roots, spread > 1e-3, counts[key])
+    candidates = [k for k in counts if score(k)[1]]
+    if not candidates:
+        return []
+    loc_edge = max(candidates, key=score)
+    if loc_edge[0] not in roots:
+        return []  # no map-anchored pose in this bag — nothing to plot against the map
+    _, moving = loc_edge
+
+    # BFS the static tree (edges usable in both directions) from `moving` to camera_frame.
+    adj: dict[str, list] = collections.defaultdict(list)
+    for (parent, child), RT in static.items():
+        adj[parent].append((child, RT))
+        adj[child].append((parent, _invert(RT)))
+    queue = collections.deque([(moving, (np.eye(3), np.zeros(3)))])
+    seen = {moving}
+    T_moving_cam = None
+    while queue:
+        frame, acc = queue.popleft()
+        if frame == camera_frame:
+            T_moving_cam = acc
+            break
+        for nb, RT in adj[frame]:
+            if nb not in seen:
+                seen.add(nb)
+                queue.append((nb, _compose(acc, RT)))
+    if T_moving_cam is None:
+        T_moving_cam = (np.eye(3), np.zeros(3))  # no camera chain: fall back to the body path
+
+    traj: list[list[float]] = []
+    for stamp, key, RT in dynamic:
+        if key != loc_edge:
+            continue
+        R, t = _compose(RT, T_moving_cam)
+        fwd = R @ np.array([1.0, 0.0, 0.0])  # camera_link forward (REP-103: +x)
+        norm = float(np.hypot(fwd[0], fwd[1])) or 1.0
+        traj.append([stamp - video_t0, float(t[0]), float(t[1]), float(fwd[0] / norm), float(fwd[1] / norm)])
+    traj.sort(key=lambda r: r[0])
+    return traj
+
+
 def decode_frame(msg, msgtype: str) -> np.ndarray:
     """Decode a sensor_msgs/CompressedImage or sensor_msgs/Image into an (H, W, C) array."""
     if "CompressedImage" in msgtype:
@@ -327,7 +446,7 @@ _INDEX_HTML = r"""<!DOCTYPE html>
     <button id="saveBtn">Save (s)</button>
     <span id="msg"></span>
     <span id="legend"></span>
-    <span id="help">click empty space: add · drag star: move · hover+d: delete · hover+r: relabel · hover+h: set height · wheel: zoom · right-drag: pan</span>
+    <span id="help">red arrow = camera pose synced to video (trace = path so far) · space: play/pause · ←/→: seek 2s · click empty space: add · drag star: move · hover+d: delete · hover+r: relabel · hover+h: set height · wheel: zoom · right-drag: pan</span>
   </div>
 <script>
 const canvas = document.getElementById('map');
@@ -347,6 +466,8 @@ let baseCanvas = null;     // pre-rendered point cloud raster at the fit-to-data
 let baseScale, baseOffsetX, baseOffsetY;
 let scale, offsetX, offsetY;   // current view transform (mutable: zoom/pan)
 let hover = -1, dragging = -1, panning = false, lastPan = null, pressWorld = null, pressScreen = null;
+let trajectory = [];       // [[t_rel, x, y, hx, hy], ...] camera pose over time, t synced to video
+const cam = document.getElementById('cam');
 const W = canvas.width, H = canvas.height, MARGIN = 24;
 
 function viridisRGB(t) {
@@ -433,6 +554,7 @@ function render() {
   ctx.clearRect(0, 0, W, H);
   ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, W, H);
   if (baseCanvas) drawPointCloudTexture();
+  drawTrajectory();
   detections.forEach((d, i) => {
     const [sx, sy] = worldToScreen(d.x, d.y);
     ctx.beginPath();
@@ -450,6 +572,65 @@ function render() {
     ctx.fillStyle = '#111'; ctx.fillText(label, sx + 10, sy - 8);
   });
   renderLegend();
+}
+
+// Index of the latest trajectory pose at or before the current video time, so the
+// pointer tracks exactly what the camera is showing right now.
+function currentTrajIndex() {
+  if (!trajectory.length) return -1;
+  const t = cam.currentTime || 0;
+  if (t <= trajectory[0][0]) return 0;
+  let lo = 0, hi = trajectory.length - 1, ans = 0;
+  while (lo <= hi) {
+    const mid = (lo + hi) >> 1;
+    if (trajectory[mid][0] <= t) { ans = mid; lo = mid + 1; } else hi = mid - 1;
+  }
+  return ans;
+}
+
+function drawTrajectory() {
+  if (trajectory.length < 2) return;
+  // Whole route, faint — so you can see where the robot will go.
+  ctx.lineWidth = 1; ctx.strokeStyle = 'rgba(90,90,90,0.4)';
+  ctx.beginPath();
+  for (let i = 0; i < trajectory.length; i++) {
+    const [sx, sy] = worldToScreen(trajectory[i][1], trajectory[i][2]);
+    i ? ctx.lineTo(sx, sy) : ctx.moveTo(sx, sy);
+  }
+  ctx.stroke();
+
+  const idx = currentTrajIndex();
+  if (idx < 0) return;
+  // Trace already travelled up to the current video time, bold.
+  ctx.lineWidth = 3; ctx.strokeStyle = '#d62728';
+  ctx.beginPath();
+  for (let i = 0; i <= idx; i++) {
+    const [sx, sy] = worldToScreen(trajectory[i][1], trajectory[i][2]);
+    i ? ctx.lineTo(sx, sy) : ctx.moveTo(sx, sy);
+  }
+  ctx.stroke();
+
+  // Pointer: a triangle at the current camera position aimed where it is looking.
+  const [, x, y, hx, hy] = trajectory[idx];
+  const [sx, sy] = worldToScreen(x, y);
+  let dx = hx, dy = -hy;                       // world->screen (screen y is flipped)
+  const dn = Math.hypot(dx, dy) || 1; dx /= dn; dy /= dn;
+  const L = 18, halfW = 8, px = -dy, py = dx;  // px,py: perpendicular to heading
+  ctx.beginPath();
+  ctx.moveTo(sx + dx * L, sy + dy * L);
+  ctx.lineTo(sx + px * halfW, sy + py * halfW);
+  ctx.lineTo(sx - px * halfW, sy - py * halfW);
+  ctx.closePath();
+  ctx.fillStyle = '#d62728'; ctx.fill();
+  ctx.lineWidth = 1.5; ctx.strokeStyle = 'white'; ctx.stroke();
+  ctx.beginPath(); ctx.arc(sx, sy, 4, 0, 2 * Math.PI);
+  ctx.fillStyle = 'white'; ctx.fill(); ctx.strokeStyle = '#d62728'; ctx.stroke();
+}
+
+// Re-render in lockstep with video playback so the pointer follows the frame on screen.
+function animate() {
+  if (trajectory.length) render();
+  requestAnimationFrame(animate);
 }
 
 function renderLegend() {
@@ -597,6 +778,11 @@ function doSave() {
 
 window.addEventListener('keydown', e => {
   if (e.target && (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA')) return;
+  // Video transport: space toggles play/pause, left/right seek by 2s. The trajectory
+  // overlay tracks cam.currentTime via animate(), so seeking moves the map pointer too.
+  if (e.key === ' ' || e.code === 'Space') { e.preventDefault(); cam.paused ? cam.play() : cam.pause(); return; }
+  if (e.key === 'ArrowLeft') { e.preventDefault(); cam.currentTime = Math.max(0, cam.currentTime - 2); render(); return; }
+  if (e.key === 'ArrowRight') { e.preventDefault(); cam.currentTime = Math.min(cam.duration || Infinity, cam.currentTime + 2); render(); return; }
   if (e.key === 'd' && hover >= 0) { pushHistory(); detections.splice(hover, 1); hover = -1; render(); }
   else if (e.key === 'r' && hover >= 0) {
     const d = detections[hover];
@@ -626,19 +812,22 @@ async function fetchJson(url) {
 
 async function init() {
   try {
-    const [metaResp, ptsResp, detResp] = await Promise.all([
+    const [metaResp, ptsResp, detResp, trajResp] = await Promise.all([
       fetchJson('/map_meta'),
       fetch('/map_points.bin').then(r => { if (!r.ok) throw new Error(`/map_points.bin -> HTTP ${r.status}`); return r.arrayBuffer(); }),
       fetchJson('/detections'),
+      fetchJson('/trajectory'),
     ]);
     meta = metaResp;
     points = new Float32Array(ptsResp);
     detections = detResp;
+    trajectory = trajResp || [];
     [baseScale, baseOffsetX, baseOffsetY] = fitTransform();
     scale = baseScale; offsetX = baseOffsetX; offsetY = baseOffsetY;
     buildBaseRaster();
     render();
-    document.getElementById('cam').src = '/video.mp4';
+    cam.src = '/video.mp4';
+    if (trajectory.length) { setMsg(`Trajectory: ${trajectory.length} poses`); requestAnimationFrame(animate); }
   } catch (err) {
     console.error(err);
     setMsg('Failed to load: ' + err.message);
@@ -653,11 +842,13 @@ init();
 
 
 class _EditorState:
-    def __init__(self, points: np.ndarray, detections: list[dict], csv_path: Path, video_bytes: bytes):
+    def __init__(self, points: np.ndarray, detections: list[dict], csv_path: Path, video_bytes: bytes,
+                 trajectory: list[list[float]]):
         self.points = points
         self.detections = detections
         self.csv_path = csv_path
         self.video_bytes = video_bytes
+        self.trajectory = trajectory
 
 
 def _make_editor_handler(state: _EditorState):
@@ -707,6 +898,8 @@ def _make_editor_handler(state: _EditorState):
                 self.wfile.write(body)
             elif self.path == "/detections":
                 self._send_json(state.detections)
+            elif self.path == "/trajectory":
+                self._send_json(state.trajectory)
             elif self.path == "/video.mp4":
                 self._serve_video()
             else:
@@ -768,6 +961,14 @@ def run_editor_web(points: np.ndarray, detections: list[dict], bag: Path, image_
         raise ValueError(f"No messages found on '{image_topic}' in {bag}")
     print(f"Loaded {len(frames)} frames spanning {frames[-1][0] - frames[0][0]:.1f}s")
 
+    video_t0 = frames[0][0]
+    trajectory = extract_camera_trajectory(bag, video_t0)
+    if trajectory:
+        print(f"Reconstructed camera trajectory: {len(trajectory)} poses from /tf")
+    else:
+        print("No global localization TF (world->...->camera) in this bag — "
+              "skipping the trajectory overlay. Record/replay with RESPLE running to get it.")
+
     with tempfile.TemporaryDirectory(prefix="a2_post_process_") as tmp:
         tmp_path = Path(tmp)
         fps = extract_frames_to_dir(frames, tmp_path / "frames")
@@ -776,7 +977,7 @@ def run_editor_web(points: np.ndarray, detections: list[dict], bag: Path, image_
         mux_video(tmp_path / "frames", video_path, fps)
         video_bytes = video_path.read_bytes()
 
-        state = _EditorState(points, detections, csv_path, video_bytes)
+        state = _EditorState(points, detections, csv_path, video_bytes, trajectory)
         handler = _make_editor_handler(state)
 
         server = None
