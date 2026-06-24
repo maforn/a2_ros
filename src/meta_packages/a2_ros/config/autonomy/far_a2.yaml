@@ -21,7 +21,8 @@ far_planner:
     g_planner/converge_distance: 0.5
 
     # Dynamic obstacle decay
-    util/dynamic_obs_dacay_time: 2.0
+    util/dynamic_obs_dacay_time: 10.0
     g_planner/path_momentum_thred: 2 
 
     util/terrain_free_Z: 0.2
+    util/new_points_decay_time: 20.0
