@@ -25,6 +25,7 @@ Topics
   Pub  ~/target            Marker         current NBV target, orange sphere
 """
 
+import math
 import struct
 import time
 import numpy as np
@@ -50,7 +51,9 @@ class FrontierExplorer(Node):
         half_w        = self.declare_parameter('grid_half_width',   80.0).value   # m each side
         self.z_lo     = self.declare_parameter('z_min_rel',         -0.3).value   # height filter rel. robot
         self.z_hi     = self.declare_parameter('z_max_rel',          1.5).value
-        self.ray_max  = self.declare_parameter('max_ray_range',     10.0).value   # m
+        self.ray_max  = self.declare_parameter('max_ray_range',      5.0).value   # m
+        fov_deg       = self.declare_parameter('scan_fov_deg',      360.0).value  # camera FOV filter (360 = disabled)
+        self.fov_half = math.radians(fov_deg / 2.0) if fov_deg < 360.0 else None
         self.reach    = self.declare_parameter('reach_dist',         1.5).value   # m — waypoint "reached"
         self.min_wp_d = self.declare_parameter('min_wp_dist',        2.5).value   # m — min advance per wp
         self.clear_r  = self.declare_parameter('robot_clear_radius', 0.6).value   # m — footprint clearing
@@ -73,6 +76,7 @@ class FrontierExplorer(Node):
         # ── state ────────────────────────────────────────────────────────
         self.robot_xy   = np.zeros(2)
         self.robot_z    = 0.0
+        self.robot_yaw  = 0.0
         self.current_wp = None       # world-frame [x,y] target
         self.wp_set_t   = None       # monotonic time when current_wp was assigned
         self.exploring  = False
@@ -117,6 +121,9 @@ class FrontierExplorer(Node):
         p = msg.pose.pose.position
         self.robot_xy[:] = [p.x, p.y]
         self.robot_z = p.z
+        q = msg.pose.pose.orientation
+        self.robot_yaw = math.atan2(2.0 * (q.w * q.z + q.x * q.y),
+                                    1.0 - 2.0 * (q.y * q.y + q.z * q.z))
 
     def _cb_scan(self, msg: PointCloud2):
         self.last_scan = msg
@@ -188,6 +195,11 @@ class FrontierExplorer(Node):
             dist   = (dx*dx + dy*dy) ** 0.5
             if dist < 0.05:
                 continue
+            if self.fov_half is not None:
+                az = math.atan2(dy, dx)
+                rel = (az - self.robot_yaw + math.pi) % (2.0 * math.pi) - math.pi
+                if abs(rel) > self.fov_half:
+                    continue
             is_occ = dist <= self.ray_max
             if not is_occ:
                 s = self.ray_max / dist

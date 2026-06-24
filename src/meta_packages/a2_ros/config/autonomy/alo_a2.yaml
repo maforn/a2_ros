@@ -5,11 +5,14 @@ alo:
     grid_half_width:     80.0    # m each side → 641×641 grid total
 
     # Point-cloud height filter (relative to robot body z from /state_estimation)
-    z_min_rel:          -0.65     # include points this far below robot center
+    z_min_rel:          -0.35     # include points this far below robot center
     z_max_rel:           1.5     # include points this far above robot center
 
-    # Ray tracing
-    max_ray_range:       10.0    # m — clip rays beyond this (open-air returns)
+    # Ray tracing / sensor coverage
+    max_ray_range:       6.0     # m — clip rays beyond this; short range forces the robot to
+                                 #     physically approach everything (matches camera useful range)
+    scan_fov_deg:        120.0   # deg — LiDAR cone used for grid updates; set to camera HFOV
+                                 #     (e.g. 120.0) to only mark areas as seen when robot faces them
 
     # Waypoint logic
     reach_dist:          1.2     # m — waypoint considered reached
