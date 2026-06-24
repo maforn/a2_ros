@@ -82,13 +82,15 @@ public:
     ray_max_   = declare_parameter("max_ray_range",        7.0);
     reach_d_   = declare_parameter("reach_dist",           1.0);
     min_wp_d_  = declare_parameter("min_wp_dist",          1.2);
-    clear_r_   = declare_parameter("robot_clear_radius",  0.55);
-    nav_clr_   = declare_parameter("nav_clearance",        0.2);
+    clear_r_     = declare_parameter("robot_clear_radius",      0.55);
+    nav_clr_     = declare_parameter("nav_clearance",            0.2);
+    min_nav_clr_ = declare_parameter("min_nav_clearance",        0.1);
     wp_tmo_    = declare_parameter("wp_timeout",          30.0);
     done_tmo_  = declare_parameter("done_timeout",         8.0);
     hit_decay_   = declare_parameter("occ_hit_decay",        0.95);
-    occ_thresh_  = declare_parameter("occ_hit_threshold",   3);
-    occ_min_nb_  = declare_parameter("occ_min_neighbors",   1);  // min 4-connected OCC neighbors to survive morpho
+    occ_thresh_      = declare_parameter("occ_hit_threshold",    3);
+    occ_min_nb_      = declare_parameter("occ_min_neighbors",    1);
+    min_cluster_cells_ = declare_parameter("min_cluster_cells",  4);
 
     const double fov     = declare_parameter("scan_fov_deg",    360.0);
     const double plan_hz = declare_parameter("planning_hz",       1.0);
@@ -114,7 +116,6 @@ public:
     grid_      .assign(n_ * n_, UNKNOWN);
     hit_grid_  .assign(n_ * n_, 0.0f);
     visit_grid_.assign(n_ * n_, 0.0f);
-    suppressed_.assign(n_ * n_, false);
     occ_filt_  .assign(n_ * n_, false);
 
     // ── subscribers ───────────────────────────────────────────────────────
@@ -263,13 +264,7 @@ private:
 
     auto passable = [&](int r, int c) -> bool {
       if (!inBounds(r, c) || occ_filt_[idx(r,c)]) return false;
-      if (grid_[idx(r,c)] == FREE) return true;
-      // 1-cell dilation of FREE so thin UNKNOWN gaps in doorways don't break reachability
-      if (r > 0    && grid_[idx(r-1,c)] == FREE) return true;
-      if (r < n_-1 && grid_[idx(r+1,c)] == FREE) return true;
-      if (c > 0    && grid_[idx(r,c-1)] == FREE) return true;
-      if (c < n_-1 && grid_[idx(r,c+1)] == FREE) return true;
-      return false;
+      return grid_[idx(r,c)] != OCC;  // FREE and UNKNOWN are passable; only confirmed OCC blocks
     };
 
     if (!passable(r0, c0)) return reach;
@@ -317,7 +312,7 @@ private:
   {
     std::vector<bool> fmask(n_ * n_, false);
     for (auto &f : fronts)
-      if (reach[idx(f.r,f.c)] && !suppressed_[idx(f.r,f.c)])
+      if (reach[idx(f.r,f.c)])
         fmask[idx(f.r,f.c)] = true;
 
     std::vector<bool> visited(n_ * n_, false);
@@ -340,6 +335,7 @@ private:
             visited[idx(nr,nc)] = true;  q.push_back({nr,nc});
           }
         }
+        if (int(cl.cells.size()) < min_cluster_cells_) continue;
         const float n = float(cl.cells.size());
         cl.cent_r = sr/n;  cl.cent_c = sc/n;
         clusters.push_back(std::move(cl));
@@ -360,21 +356,32 @@ private:
       const double len = std::hypot(double(dr), double(dc)) + 1e-6;
       score *= 1.0 + 0.5 * std::max(0.0, (dr*head_x_ + dc*head_y_) / len);
     }
+    // Penalise clusters hemmed against confirmed walls: count OCC cells within
+    // 1 cell of the centroid. Wall-boundary clusters score lower so the robot
+    // prefers frontiers that open into genuinely unexplored space.
+    {
+      int occ_nb = 0;
+      const int cr = std::clamp(ri, 1, n_-2), cc = std::clamp(ci, 1, n_-2);
+      static constexpr int DR[] = {-1,1,0,0,-1,-1,1,1};
+      static constexpr int DC[] = {0,0,-1,1,-1,1,-1,1};
+      for (int d = 0; d < 8; ++d)
+        if (grid_[idx(cr+DR[d], cc+DC[d])] == OCC) ++occ_nb;
+      score *= 1.0 / (1.0 + occ_nb * 0.5);
+    }
     return score;
   }
 
   // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━  approach waypoint  ━━━━━━━━
 
-  std::optional<Pt2> approachWp(const Cluster &cl, float rob_r, float rob_c,
-                                 const std::vector<bool> &reach) const
+  std::optional<Pt2> approachWpWithClr(const Cluster &cl, float rob_r, float rob_c,
+                                        const std::vector<bool> &reach, float clr) const
   {
     const int R    = int(ray_max_ / res_) + 1;
     const int r0   = std::max(0,  int(cl.cent_r)-R), r1 = std::min(n_, int(cl.cent_r)+R+1);
     const int c0   = std::max(0,  int(cl.cent_c)-R), c1 = std::min(n_, int(cl.cent_c)+R+1);
     const float min_d2 = float(min_wp_d_/res_) * float(min_wp_d_/res_);
-    const int   nav_cr = int(nav_clr_/res_) + 1;
-    const float nav_r2 = float(nav_clr_/res_) * float(nav_clr_/res_);
-    const float bl_d2  = float(min_wp_d_) * float(min_wp_d_);
+    const int   nav_cr = int(clr/res_) + 1;
+    const float nav_r2 = float(clr/res_) * float(clr/res_);
     float best_d2 = std::numeric_limits<float>::max();
     std::optional<Pt2> best;
 
@@ -392,18 +399,22 @@ private:
             }
         if (!clear) continue;
         Pt2 wp = g2w(r,c);
-        bool bl = false;
-        for (auto &b : blacklist_) {
-          const float dx = wp.x-b.x, dy = wp.y-b.y;
-          if (dx*dx+dy*dy < bl_d2) { bl = true; break; }
-        }
-        if (bl) continue;
         const float drc = float(r-cl.cent_r), dcc = float(c-cl.cent_c);
         const float d2c = drc*drc + dcc*dcc;
         if (d2c < best_d2) { best_d2 = d2c; best = wp; }
       }
     }
     return best;
+  }
+
+  // Try full nav_clearance first; fall back to min_nav_clr_ for narrow passages.
+  std::optional<Pt2> approachWp(const Cluster &cl, float rob_r, float rob_c,
+                                 const std::vector<bool> &reach) const
+  {
+    auto wp = approachWpWithClr(cl, rob_r, rob_c, reach, nav_clr_);
+    if (!wp && min_nav_clr_ < nav_clr_)
+      wp = approachWpWithClr(cl, rob_r, rob_c, reach, min_nav_clr_);
+    return wp;
   }
 
   // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━  callbacks  ━━━━━━━━━━━━━━━━
@@ -426,10 +437,9 @@ private:
       std::fill(grid_.begin(),       grid_.end(),       UNKNOWN);
       std::fill(hit_grid_.begin(),   hit_grid_.end(),   0.0f);
       std::fill(visit_grid_.begin(), visit_grid_.end(), 0.0f);
-      std::fill(suppressed_.begin(), suppressed_.end(), false);
       std::fill(occ_filt_.begin(),   occ_filt_.end(),   false);
       current_wp_.reset(); wp_set_t_.reset(); no_front_t_.reset();
-      blacklist_.clear(); viz_fronts_.clear(); viz_cluster_.reset();
+      viz_fronts_.clear(); viz_cluster_.reset();
       head_x_ = head_y_ = 0.0;
       prev_rx_ = float(rx_); prev_ry_ = float(ry_);
       exploring_ = true;
@@ -574,14 +584,8 @@ private:
       } else if (wp_set_t_) {
         const double elapsed = std::chrono::duration<double>(now - *wp_set_t_).count();
         if (elapsed > wp_tmo_) {
-          RCLCPP_WARN(get_logger(), "Timeout %.0f s — blacklisting (%.1f,%.1f)",
+          RCLCPP_WARN(get_logger(), "Timeout %.0f s — skipping (%.1f,%.1f), replanning",
                       wp_tmo_, current_wp_->x, current_wp_->y);
-          blacklist_.push_back(*current_wp_);
-          auto wg = w2g(current_wp_->x, current_wp_->y);
-          const int Rs = std::max(1, int(1.5/res_));
-          for (int r = wg.r-Rs; r <= wg.r+Rs; ++r)
-            for (int c = wg.c-Rs; c <= wg.c+Rs; ++c)
-              if (inBounds(r,c)) suppressed_[idx(r,c)] = true;
           current_wp_.reset(); wp_set_t_.reset();
         }
       }
@@ -619,8 +623,8 @@ private:
       auto cw = g2w(int(cl.cent_r), int(cl.cent_c));
       const float r = std::sqrt(float(cl.cells.size())) * float(res_) * 0.5f;
       viz_cluster_ = ClusterViz{cw.x, cw.y, std::max(r, 0.5f)};
-      RCLCPP_INFO(get_logger(), "→ (%.1f,%.1f)  clusters=%zu  bl=%zu",
-                  wp->x, wp->y, clusters.size(), blacklist_.size());
+      RCLCPP_INFO(get_logger(), "→ (%.1f,%.1f)  clusters=%zu",
+                  wp->x, wp->y, clusters.size());
       break;
     }
   }
@@ -732,13 +736,13 @@ private:
   // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━  members  ━━━━━━━━━━━━━━━━━━
 
   double res_, half_w_, z_max_rel_, ray_max_, fov_half_;
-  double reach_d_, min_wp_d_, clear_r_, nav_clr_, wp_tmo_, done_tmo_, hit_decay_;
+  double reach_d_, min_wp_d_, clear_r_, nav_clr_, min_nav_clr_, wp_tmo_, done_tmo_, hit_decay_;
   double gs_z_min_, gs_z_max_, voxel_size_;
   std::string lidar_topic_;
-  int    occ_thresh_, occ_min_nb_, n_;
+  int    occ_thresh_, occ_min_nb_, min_cluster_cells_, n_;
 
   float ox_ = 0.f, oy_ = 0.f;
-  std::vector<uint8_t> grid_, suppressed_;
+  std::vector<uint8_t> grid_;
   std::vector<float>   hit_grid_, visit_grid_;
   std::vector<bool>    occ_filt_;
 
@@ -752,7 +756,6 @@ private:
   std::optional<Pt2>          current_wp_;
   std::optional<ClusterViz>   viz_cluster_;
   std::optional<TimePoint>    wp_set_t_, no_front_t_;
-  std::vector<Pt2>            blacklist_;
   std::vector<GC>             viz_fronts_;
 
   sensor_msgs::msg::PointCloud2::SharedPtr last_scan_;

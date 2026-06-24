@@ -38,14 +38,21 @@ alo:
     # each tick. 1 = isolated singles only; 2 = also removes line endpoints.
     occ_min_neighbors:   1
 
+    # ── Frontier filtering ────────────────────────────────────────────────
+    # Discard frontier clusters with fewer cells than this. Filters out tiny
+    # isolated UNKNOWN patches (sensor noise) that create spurious frontiers.
+    # At 0.15 m/cell, 4 cells ≈ 0.6 m span.
+    min_cluster_cells:   4
+
     # ── Waypoint logic ────────────────────────────────────────────────────
     reach_dist:        1.0    # m — waypoint considered reached
     min_wp_dist:       1.2    # m — minimum advance per waypoint
     wp_timeout:       30.0    # s — blacklist if not reached in time
 
     # ── Robot footprint & navigation clearance ────────────────────────────
-    robot_clear_radius:  0.1  # m — stamped FREE each tick
-    nav_clearance:       0.40  # m — minimum wall clearance for approach waypoints
+    robot_clear_radius:  0.4   # m — stamped FREE each tick
+    nav_clearance:       0.40  # m — preferred wall clearance for approach waypoints
+    min_nav_clearance:   0.15  # m — fallback clearance for narrow passages (≥1 cell)
 
     # ── Timers ───────────────────────────────────────────────────────────
     planning_hz:      1.0     # Hz — replanning rate

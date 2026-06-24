@@ -3,7 +3,7 @@
     Autonomous exploration mission with object detection, home return, and map save.
 
     Flow:
-      1. CreatePose              — hardcode start position as {home_pose}
+      1. SavePose                — capture robot's current pose from /state_estimation as {home_pose}
       2. detection_mapper/start  — reset and start accumulating detections
       3. StartExploration        — trigger ALO via /start_exploration
       4. WaitForExplorationFinish — block until ALO reports done (or timeout)
@@ -23,8 +23,8 @@
   <BehaviorTree ID="Challenge">
     <Sequence>
 
-      <!-- 1. Hardcode home position -->
-      <CreatePose x="0.0" y="0.0" yaw="0.0" frame_id="map" pose="{home_pose}" />
+      <!-- 1. Capture current pose from /state_estimation as home position -->
+      <SavePose pose="{home_pose}" />
 
       <!-- 2. Reset detection accumulator and start collecting -->
       <CallTriggerService service_name="detection_mapper/start" />

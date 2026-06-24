@@ -58,13 +58,19 @@ def generate_launch_description():
         DeclareLaunchArgument('use_sim_time', default_value='false'),
         DeclareLaunchArgument('planner',      default_value='alo',
                               description='Exploration planner: "tare" or "alo"'),
+        # In sim the TF is always current (bridge publishes it synchronously), so
+        # tf_lag_sec should be ~0. On the real robot RESPLE has ~200ms TF lag so
+        # 0.25s keeps the lookup safely behind the available TF history.
+        # Pass tf_lag_sec:=0.0 from full_sim.launch.py, 0.25 from full_nuc.launch.py.
+        DeclareLaunchArgument('tf_lag_sec',   default_value='0.25',
+                              description='TF lookup lag for registered_scan_pub (s). '
+                                          '0.0 for sim, ~0.25 for real robot with RESPLE.'),
         SetParameter(name='use_sim_time', value=LaunchConfiguration('use_sim_time')),
 
         # Transforms raw /front_lidar/points → /alo/scan (map frame, full resolution).
         # Separate from /registered_scan so RESPLE's downsampled cloud stays intact
         # for terrain_analysis and far_planner. ALO uses /alo/scan and applies its
-        # own voxel filter. tf_lag_sec=0.30 keeps lookup safely behind the ~200ms
-        # TF lag from RESPLE on the real robot.
+        # own voxel filter.
         Node(
             package='a2_utils',
             executable='registered_scan_pub',
@@ -73,7 +79,7 @@ def generate_launch_description():
             parameters=[{
                 'input_topic':  '/front_lidar/points',
                 'target_frame': 'map',
-                'tf_lag_sec':   0.30,
+                'tf_lag_sec':   LaunchConfiguration('tf_lag_sec'),
             }],
             remappings=[('/registered_scan', '/alo/scan')],
         ),

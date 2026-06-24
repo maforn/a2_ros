@@ -8,7 +8,7 @@
 
     Flow:
       1. SetMode 2/3/4           — boot FSM: stand → unlock → walk
-      2. CreatePose              — hardcode start position as {home_pose}
+      2. SavePose                — capture robot's current pose from /state_estimation as {home_pose}
       3. detection_mapper/start  — reset and start accumulating detections
       4. StartExploration        — trigger ALO via /start_exploration
       5. WaitForExplorationFinish — block until ALO reports done (or timeout)
@@ -33,8 +33,8 @@
       <SetMode mode="3" wait_for_sec="3.0" />
       <SetMode mode="4" wait_for_sec="1.0" />
 
-      <!-- 2. Hardcode home position -->
-      <CreatePose x="0.0" y="0.0" yaw="0.0" frame_id="map" pose="{home_pose}" />
+      <!-- 2. Capture current pose from /state_estimation as home position -->
+      <SavePose pose="{home_pose}" />
 
       <!-- 3. Reset detection accumulator and start collecting -->
       <CallTriggerService service_name="detection_mapper/start" />
