@@ -54,6 +54,18 @@ def generate_launch_description():
                               description='Exploration planner: "tare" or "alo"'),
         SetParameter(name='use_sim_time', value=LaunchConfiguration('use_sim_time')),
 
+        # FAR planner reads the frame_id from /state_estimation and looks up
+        # map→<that_frame> if they differ. On the real robot the PC2 runs DLIO
+        # which publishes /state_estimation with frame_id="dlio_odom" over Zenoh.
+        # This identity TF lets FAR planner resolve map→dlio_odom without error.
+        Node(
+            package='tf2_ros',
+            executable='static_transform_publisher',
+            name='map_to_dlio_odom_tf',
+            arguments=['0', '0', '0', '0', '0', '0', 'map', 'dlio_odom'],
+            parameters=[{'use_sim_time': LaunchConfiguration('use_sim_time')}],
+        ),
+
         # Transforms raw /front_lidar/points → /alo/scan (map frame, no voxel filter).
         # Publishes to /alo/scan (not /registered_scan) so RESPLE's downsampled
         # /registered_scan stays intact for FAR planner and terrain analysis.
