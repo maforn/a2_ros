@@ -1,7 +1,7 @@
 terrainAnalysis:
   ros__parameters:
-    scanVoxelSize:          0.1
-    decayTime:              10.0
+    scanVoxelSize:          0.05
+    decayTime:              5.0
     noDecayDis:             0.0
     clearingDis:            8.0
     useSorting:             true
@@ -19,12 +19,12 @@ terrainAnalysis:
     minDyObsPointNum:       1
     noDataObstacle:         false
     noDataBlockSkipNum:     0
-    minBlockPointNum:       20
+    minBlockPointNum:       10
     vehicleHeight:          0.5
     voxelPointUpdateThre:   100
     voxelTimeUpdateThre:    2.0
     minRelZ:                -1.0
-    maxRelZ:                1.5
+    maxRelZ:                1.0
     disRatioZ:              0.2
 
 terrainAnalysisExt:
@@ -36,10 +36,10 @@ terrainAnalysisExt:
     useSorting:             true
     quantileZ:              0.25
     vehicleHeight:          0.5
-    voxelPointUpdateThre:   10
+    voxelPointUpdateThre:   100
     voxelTimeUpdateThre:    2.0
     lowerBoundZ:            -1.0
-    upperBoundZ:            1.5
+    upperBoundZ:            1.0
     disRatioZ:              0.1
     checkTerrainConn:       true
     terrainUnderVehicle:    -0.75
@@ -59,23 +59,23 @@ localPlanner:
     useTerrainAnalysis:         true
     checkObstacle:              true
     checkRotObstacle:           true
-    adjacentRange:              3.5
+    adjacentRange:              2.0
     obstacleHeightThre:         0.15
     groundHeightThre:           0.1
     costHeightThre:             0.1
     costScore:                  0.02
     useCost:                    false
-    pointPerPathThre:           3
+    pointPerPathThre:           2
     minRelZ:                    -0.5
-    maxRelZ:                    1.2
-    maxSpeed:                   0.3 # reduce max speed
+    maxRelZ:                    0.8
+    maxSpeed:                   0.5
     dirWeight:                  0.1
     dirThre:                    90.0
     dirToVehicle:               false
     pathScale:                  1.0
     minPathScale:               0.75
     pathScaleStep:              0.25
-    pathScaleBySpeed:           true
+    pathScaleBySpeed:           false
     minPathRange:               1.0
     pathRangeStep:              0.5
     pathRangeBySpeed:           true
@@ -84,7 +84,7 @@ localPlanner:
     autonomySpeed:              1.0
     joyToSpeedDelay:            2.0
     joyToCheckObstacleDelay:    5.0
-    goalClearRange:             0.4
+    goalClearRange:             0.3
     goalX:                      0.0
     goalY:                      0.0
 
@@ -98,8 +98,8 @@ pathFollower:
     yawRateGain:        5.0
     stopYawRateGain:    4.0
     maxYawRate:         30.0
-    maxSpeed:           0.3 # reduce max speed
-    maxAccel:           1.0 # reduce max acceleration
+    maxSpeed:           0.5
+    maxAccel:           2.0
     switchTimeThre:     1.0
     dirDiffThre:        0.1
     stopDisThre:        0.3

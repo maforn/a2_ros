@@ -70,11 +70,11 @@ tare_planner_node:
     keypose_graph/kAddEdgeCollisionCheckPointNumThr : 1   # collision points needed to reject an edge
 
     # ViewPointManager — grid of candidate sensor poses for coverage planning
-    viewpoint_manager/number_x : 10    # viewpoint grid cells in X
-    viewpoint_manager/number_y : 10    # viewpoint grid cells in Y
+    viewpoint_manager/number_x : 25    # viewpoint grid cells in X
+    viewpoint_manager/number_y : 25    # viewpoint grid cells in Y
     viewpoint_manager/number_z : 1     # viewpoint grid cells in Z (1 = 2-D planning)
-    viewpoint_manager/resolution_x : 0.8  # viewpoint cell size X (m)
-    viewpoint_manager/resolution_y : 0.8  # viewpoint cell size Y (m)
+    viewpoint_manager/resolution_x : 0.6  # viewpoint cell size X (m)
+    viewpoint_manager/resolution_y : 0.6  # viewpoint cell size Y (m)
     viewpoint_manager/resolution_z : 0.0  # viewpoint cell size Z (m)
     kConnectivityHeightDiffThr : 0.25     # max height difference for two viewpoints to be connected (m)
     kGreedyViewPointSampleRange : 3       # candidates sampled per greedy selection step
@@ -104,13 +104,13 @@ tare_planner_node:
     kGridWorldZNum : 1            # global grid cells in Z (1 = flat/ground-level only)
     kGridWorldCellHeight : 1.5    # size of each global grid cell (m)
     kGridWorldNearbyGridNum : 5   # nearby cells considered for local search
-    kMinAddPointNumSmall : 20     # min new coverage points for a minor coverage increment
-    kMinAddPointNumBig : 40       # min new coverage points for a significant coverage increment
-    kMinAddFrontierPointNum : 10  # min points for a frontier cell to remain active
-    kCellExploringToCoveredThr : 1    # coverage count to transition cell: exploring → covered
-    kCellCoveredToExploringThr : 10   # coverage count drop to revert cell: covered → exploring
-    kCellExploringToAlmostCoveredThr : 10   # coverage count for exploring → almost-covered
-    kCellAlmostCoveredToExploringThr : 20   # coverage count drop to revert: almost-covered → exploring
+    kMinAddPointNumSmall : 50     # min new coverage points for a minor coverage increment
+    kMinAddPointNumBig : 100      # min new coverage points for a significant coverage increment
+    kMinAddFrontierPointNum : 15  # min points for a frontier cell to remain active
+    kCellExploringToCoveredThr : 3    # coverage count to transition cell: exploring → covered
+    kCellCoveredToExploringThr : 15   # coverage count drop to revert cell: covered → exploring
+    kCellExploringToAlmostCoveredThr : 15   # coverage count for exploring → almost-covered
+    kCellAlmostCoveredToExploringThr : 30   # coverage count drop to revert: almost-covered → exploring
     kCellUnknownToExploringThr : 1    # coverage count to activate unknown cell as exploring
 
     # Visualization only — no effect on planning
