@@ -478,23 +478,22 @@ private:
     const float z_top = std::min(float(rz_) + float(z_max_rel_), float(z_max_abs_)); // above → ceiling
 
     // ── Pass 1: range + FOV filter → voxel downsample ─────────────────────
-    // Filter first so the voxel grid only contains points that are within the
-    // useful work area. Out-of-range / out-of-FOV points are dropped immediately.
     const float inv_vox = 1.0f / float(voxel_size_);
     std::unordered_map<uint64_t, Pt3> voxels;
     voxels.reserve(2048);
+    uint32_t n_nan = 0, n_range = 0, n_fov = 0;
     for (uint32_t i = 0; i < np; ++i) {
       const uint8_t *p = raw + i * ps;
       float x, y, z;
       std::memcpy(&x, p+xo, 4); std::memcpy(&y, p+yo, 4); std::memcpy(&z, p+zo, 4);
-      if (!std::isfinite(x)||!std::isfinite(y)||!std::isfinite(z)) continue;
+      if (!std::isfinite(x)||!std::isfinite(y)||!std::isfinite(z)) { ++n_nan; continue; }
       const float dx = x - rx, dy = y - ry;
       const float d  = std::hypot(dx, dy);
-      if (d < 0.05f || d > ray_max_f) continue;          // range gate
+      if (d < 0.05f || d > ray_max_f) { ++n_range; continue; }
       if (fov_half_ > 0.0) {
         const double az  = std::atan2(dy, dx);
         const double rel = std::fmod(az - ryaw_ + M_PI, 2*M_PI) - M_PI;
-        if (std::abs(rel) > fov_half_) continue;          // FOV gate
+        if (std::abs(rel) > fov_half_) { ++n_fov; continue; }
       }
       const int ix = int(std::floor(x * inv_vox));
       const int iy = int(std::floor(y * inv_vox));
@@ -504,6 +503,24 @@ private:
                             uint64_t(uint32_t(iz+512000));
       voxels.try_emplace(key, Pt3{x, y, z});
     }
+
+    // count how many voxel points survive the Z band
+    uint32_t n_bot = 0, n_gnd = 0, n_obs = 0, n_ceil = 0;
+    for (auto &[k, pt] : voxels) {
+      if      (pt.z < z_bot) ++n_bot;
+      else if (pt.z < z_gnd) ++n_gnd;
+      else if (pt.z > z_top) ++n_ceil;
+      else                   ++n_obs;
+    }
+
+    RCLCPP_INFO_THROTTLE(get_logger(), *get_clock(), 2000,
+      "scan: %u pts | nan=%u range=%u fov=%u | voxels=%zu"
+      " | z[bot/gnd/obs/ceil]=%u/%u/%u/%u"
+      " | robot(%.2f,%.2f,%.2f) yaw=%.1f° z_band=[%.2f,%.2f]",
+      np, n_nan, n_range, n_fov, voxels.size(),
+      n_bot, n_gnd, n_obs, n_ceil,
+      rx_, ry_, rz_, ryaw_ * 180.0 / M_PI,
+      z_gnd, z_top);
 
     // ── Pass 2: debug publish (lazy) ──────────────────────────────────────
     const bool pub_gnd  = gnd_pub_ ->get_subscription_count() > 0;

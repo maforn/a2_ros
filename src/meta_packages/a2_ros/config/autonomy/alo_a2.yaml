@@ -24,11 +24,11 @@ alo:
 
     # ── Non-ground / ceiling filter ───────────────────────────────────────
     z_max_rel:         1.0    # m above robot centre — relative ceiling (discards high returns)
-    z_max_abs:         2.0    # m absolute world-Z ceiling — hard cap regardless of robot height
+    z_max_abs:        10.0    # m absolute world-Z ceiling — hard cap regardless of robot height
 
     # ── Ray tracing ───────────────────────────────────────────────────────
     max_ray_range:     7.0    # m — rays beyond this are clipped to FREE
-    scan_fov_deg:    100.0    # deg — 360 for full lidar; restrict for camera-only
+    scan_fov_deg:    360.0    # deg — 360 for full lidar; restrict for camera-only
 
     # ── Hit-count occupancy accumulator ───────────────────────────────────
     occ_hit_threshold:   3    # confirmed-OCC requires this many scan hits (grid updates at lidar rate)
