@@ -18,9 +18,15 @@ Starts:
 
 Parameters loaded from config/autonomy/navigation_a2.yaml, tare_a2.yaml, far_a2.yaml.
 
+Topic split:
+  /registered_scan  — RESPLE's world-frame cloud (downsampled); used by terrain_analysis
+                      and far_planner.
+  /alo/scan         — registered_scan_pub full-resolution transform of /front_lidar/points;
+                      used only by ALO so it controls its own voxel downsampling.
+
 Prerequisites:
-  /state_estimation  - odometry
-  /registered_scan   - world-frame lidar cloud
+  /state_estimation  - odometry (RESPLE → frame_id=map)
+  /registered_scan   - world-frame lidar cloud (RESPLE)
 
 Usage:
   ros2 launch a2_ros navigate_and_explore.launch.py rviz:=true planner:=frontier
@@ -54,11 +60,11 @@ def generate_launch_description():
                               description='Exploration planner: "tare" or "alo"'),
         SetParameter(name='use_sim_time', value=LaunchConfiguration('use_sim_time')),
 
-        # Transforms raw /front_lidar/points → /alo/scan (map frame, no voxel filter).
-        # Publishes to /alo/scan (not /registered_scan) so RESPLE's downsampled
-        # /registered_scan stays intact for FAR planner and terrain analysis.
-        # tf_lag_sec=0.30: 300ms past the scan timestamp — safely behind the ~200ms
-        # TF lag observed from RESPLE on the real robot.
+        # Transforms raw /front_lidar/points → /alo/scan (map frame, full resolution).
+        # Separate from /registered_scan so RESPLE's downsampled cloud stays intact
+        # for terrain_analysis and far_planner. ALO uses /alo/scan and applies its
+        # own voxel filter. tf_lag_sec=0.30 keeps lookup safely behind the ~200ms
+        # TF lag from RESPLE on the real robot.
         Node(
             package='a2_utils',
             executable='registered_scan_pub',
@@ -132,11 +138,7 @@ def generate_launch_description():
             additional_env={'QT_QPA_PLATFORM': 'offscreen'},
             parameters=[far_config],
             remappings=[
-                # Use RESPLE's /odometry (frame=world) instead of /state_estimation.
-                # /state_estimation is shared with DLIO on PC2 (frame=dlio_odom) over Zenoh,
-                # causing FAR planner to look up map→dlio_odom (unconnected trees).
-                # /odometry is a relative topic — only RESPLE's Mapping node publishes it.
-                ('/odom_world',          '/odometry'),
+                ('/odom_world',          '/state_estimation'),
                 ('/terrain_cloud',       '/terrain_map_ext'),
                 ('/scan_cloud',          '/registered_scan'),
                 ('/terrain_local_cloud', '/terrain_map'),
