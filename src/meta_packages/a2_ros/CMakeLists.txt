@@ -76,12 +76,22 @@ ament_target_dependencies(sim_lidar_adapter
   sensor_msgs
 )
 
+add_executable(waypoint_mux
+  src/waypoint_mux.cpp
+)
+ament_target_dependencies(waypoint_mux
+  rclcpp
+  geometry_msgs
+  std_msgs
+)
+
 install(TARGETS
   stand_example
   teleop_joy
   nav_vel_relay
   scan_pose_sync
   sim_lidar_adapter
+  waypoint_mux
   DESTINATION lib/${PROJECT_NAME}
 )
 
