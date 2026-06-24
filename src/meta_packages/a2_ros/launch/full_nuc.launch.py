@@ -73,7 +73,7 @@ def generate_launch_description():
                 'use_sim_time': 'false',
                 'rviz':         LaunchConfiguration('rviz'),
                 'planner':      'alo',
-                'tf_lag_sec':   '0.25',
+                'tf_lag_sec':   '0.40',
             }.items(),
         ),
         PopLaunchConfigurations(),
