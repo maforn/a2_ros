@@ -63,6 +63,22 @@ def generate_launch_description():
         planner_arg,
         SetParameter(name='use_sim_time', value=LaunchConfiguration('use_sim_time')),
 
+        # Full-resolution lidar in map frame for ALO (same as navigate_and_explore.launch.py).
+        # In sim the bridge publishes /front_lidar/points in sensor frame; we transform it
+        # to /alo/scan so ALO uses its own voxel filter on the full-res cloud.
+        Node(
+            package='a2_utils',
+            executable='registered_scan_pub',
+            name='registered_scan_pub',
+            output='screen',
+            parameters=[{
+                'input_topic':  '/front_lidar/points',
+                'target_frame': 'map',
+                'tf_lag_sec':   0.05,
+            }],
+            remappings=[('/registered_scan', '/alo/scan')],
+        ),
+
         # ---- terrain analysis (local map) ----
         Node(
             package='terrain_analysis',
