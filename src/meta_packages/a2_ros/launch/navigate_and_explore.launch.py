@@ -35,8 +35,8 @@ Usage:
 import os
 from ament_index_python.packages import get_package_share_directory
 from launch import LaunchDescription
-from launch.actions import DeclareLaunchArgument, OpaqueFunction
-from launch.conditions import IfCondition, UnlessCondition
+from launch.actions import DeclareLaunchArgument
+from launch.conditions import IfCondition
 from launch.substitutions import LaunchConfiguration, PythonExpression
 from launch_ros.actions import Node, SetParameter
 
@@ -50,47 +50,15 @@ def generate_launch_description():
     alo_config   = os.path.join(a2_ros_dir, 'config', 'autonomy', 'alo_a2.yaml')
     path_folder  = get_package_share_directory('local_planner') + '/paths'
 
-    is_tare          = IfCondition(PythonExpression(["'", LaunchConfiguration('planner'), "' == 'tare'"]))
-    is_alo           = IfCondition(PythonExpression(["'", LaunchConfiguration('planner'), "' == 'alo'"]))
-    use_resple_scan  = IfCondition(LaunchConfiguration('resple_scan'))
-    skip_resple_scan = UnlessCondition(LaunchConfiguration('resple_scan'))
+    is_tare = IfCondition(PythonExpression(["'", LaunchConfiguration('planner'), "' == 'tare'"]))
+    is_alo  = IfCondition(PythonExpression(["'", LaunchConfiguration('planner'), "' == 'alo'"]))
 
     nodes = [
         DeclareLaunchArgument('rviz',         default_value='true'),
         DeclareLaunchArgument('use_sim_time', default_value='false'),
         DeclareLaunchArgument('planner',      default_value='alo',
                               description='Exploration planner: "tare" or "alo"'),
-        # In sim the TF is always current (bridge publishes it synchronously), so
-        # tf_lag_sec should be ~0. On the real robot RESPLE has ~200ms TF lag so
-        # 0.25s keeps the lookup safely behind the available TF history.
-        # Pass tf_lag_sec:=0.0 from full_sim.launch.py, 0.25 from full_nuc.launch.py.
-        DeclareLaunchArgument('tf_lag_sec',    default_value='0.25',
-                              description='TF lookup lag for registered_scan_pub (s). '
-                                          'Ignored when resple_scan:=true.'),
-        DeclareLaunchArgument('resple_scan',   default_value='false',
-                              description='Use /registered_scan from RESPLE directly for ALO. '
-                                          'Skips registered_scan_pub. Use on real robot with RESPLE.'),
         SetParameter(name='use_sim_time', value=LaunchConfiguration('use_sim_time')),
-
-        # registered_scan_pub: only launched when resple_scan:=false (sim / DLIO mode).
-        # Transforms raw /front_lidar/points → /alo/scan at full resolution with tf_lag offset.
-        Node(
-            package='a2_utils',
-            executable='registered_scan_pub',
-            name='registered_scan_pub',
-            output='screen',
-            parameters=[{
-                'input_topic':  '/front_lidar/points',
-                'target_frame': 'map',
-                'tf_lag_sec':   LaunchConfiguration('tf_lag_sec'),
-            }],
-            remappings=[('/registered_scan', '/alo/scan')],
-            condition=skip_resple_scan,
-        ),
-
-        # When resple_scan:=true, ALO subscribes to /registered_scan directly (RESPLE output).
-        # A static relay is not needed — ALO's lidar_topic parameter is overridden below.
-
 
         Node(
             package='terrain_analysis',
@@ -135,19 +103,15 @@ def generate_launch_description():
         ),
 
         # ---- ALO exploration planner (planner:=alo) ----
-        # resple_scan:=false → lidar_topic=/alo/scan (registered_scan_pub output)
-        # resple_scan:=true  → lidar_topic=/registered_scan (RESPLE output, no extra node)
-        OpaqueFunction(function=lambda context, **_: [Node(
+        # ---- ALO exploration planner (planner:=alo) ----
+        Node(
             package='a2_ros',
             executable='alo',
             name='alo',
             output='screen',
-            parameters=[alo_config, {
-                'lidar_topic': '/registered_scan'
-                    if context.perform_substitution(LaunchConfiguration('resple_scan')).lower() in ('true', '1')
-                    else '/alo/scan',
-            }],
-        )] if context.perform_substitution(LaunchConfiguration('planner')) == 'alo' else []),
+            parameters=[alo_config],
+            condition=is_alo,
+        ),
 
         Node(
             package='far_planner',

@@ -11,7 +11,7 @@ freshly-computed transforms. /tf_static is kept (static robot-model links).
 Usage:
   ros2 launch a2_ros bag_replay.launch.py bag:=/path/to/bag
   ros2 launch a2_ros bag_replay.launch.py bag:=my_run  # resolves under $ROS_BAGS_DIR
-  ros2 launch a2_ros bag_replay.launch.py bag:=/path/to/bag rviz:=true pause:=true rate:=0.5
+  ros2 launch a2_ros bag_replay.launch.py bag:=/path/to/bag rviz:=true rate:=0.5
 """
 
 import os
@@ -53,11 +53,7 @@ def play_bag_setup(context, *args, **kwargs):
     # /tf_static is kept so static robot-model links are available.
     cmd += ['--exclude-topics', '/tf']
 
-    pause = context.perform_substitution(LaunchConfiguration('pause'))
-    rate  = context.perform_substitution(LaunchConfiguration('rate'))
-
-    if pause.lower() in ['true', '1']:
-        cmd.append('--pause')
+    rate = context.perform_substitution(LaunchConfiguration('rate'))
     if rate and rate != '1.0':
         cmd.extend(['--rate', rate])
 
@@ -75,14 +71,8 @@ def generate_launch_description():
         DeclareLaunchArgument('bag',        default_value='',
                               description='Bag path or name under $ROS_BAGS_DIR'),
         DeclareLaunchArgument('rviz',       default_value='true'),
-        DeclareLaunchArgument('pause',      default_value='true',
-                              description='Start bag paused (space to unpause)'),
         DeclareLaunchArgument('rate',       default_value='1.0',
                               description='Playback rate (0.5 = half speed)'),
-        DeclareLaunchArgument('tf_lag_sec', default_value='0.05',
-                              description='TF lookup lag for registered_scan_pub. '
-                                          'Increase if "extrapolation into future" warnings appear.'),
-
         # All nodes use bag time published by ros2 bag play --clock.
         SetParameter(name='use_sim_time', value=True),
 
@@ -124,7 +114,6 @@ def generate_launch_description():
                 'use_sim_time': 'true',
                 'rviz':         'false',
                 'planner':      'alo',
-                'tf_lag_sec':   '0.25',
             }.items(),
         ),
         PopLaunchConfigurations(),

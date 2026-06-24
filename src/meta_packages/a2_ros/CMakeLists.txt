@@ -20,6 +20,7 @@ find_package(rosbag2_cpp REQUIRED)
 find_package(nav_msgs REQUIRED)
 find_package(tf2 REQUIRED)
 find_package(tf2_ros REQUIRED)
+find_package(tf2_sensor_msgs REQUIRED)
 find_package(a2_interfaces REQUIRED)
 find_package(visualization_msgs REQUIRED)
 find_package(Eigen3 REQUIRED)
@@ -90,6 +91,15 @@ ament_target_dependencies(alo
   visualization_msgs
 )
 
+add_executable(registered_scan_pub src/registered_scan_pub.cpp)
+target_compile_features(registered_scan_pub PRIVATE cxx_std_17)
+ament_target_dependencies(registered_scan_pub
+  rclcpp
+  sensor_msgs
+  tf2_ros
+  tf2_sensor_msgs
+)
+
 install(TARGETS
   stand_example
   teleop_joy
@@ -97,6 +107,7 @@ install(TARGETS
   scan_pose_sync
   sim_lidar_adapter
   alo
+  registered_scan_pub
   DESTINATION lib/${PROJECT_NAME}
 )
 
