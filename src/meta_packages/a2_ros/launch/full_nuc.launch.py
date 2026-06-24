@@ -84,13 +84,13 @@ def generate_launch_description():
         #   lidar_topic:       /front_lidar/points
         #   gpu:               off        (NUC is CPU-only)
         # Output: /detection_info  →  consumed by detection_mapper (in navigate_and_explore)
-        PushLaunchConfigurations(),
-        IncludeLaunchDescription(
-            PythonLaunchDescriptionSource(
-                os.path.join(detect_launch_dir, 'object_detection_real.launch.py')
-            ),
-        ),
-        PopLaunchConfigurations(),
+        # PushLaunchConfigurations(),
+        # IncludeLaunchDescription(
+        #     PythonLaunchDescriptionSource(
+        #         os.path.join(detect_launch_dir, 'object_detection_real.launch.py')
+        #     ),
+        # ),
+        # PopLaunchConfigurations(),
 
         # ── BT action server ─────────────────────────────────────────────────
         PushLaunchConfigurations(),
