@@ -1,0 +1,30 @@
+# One-axis-at-a-time (OFAT) sweep spec for the terrainAnalysis node.
+#
+# Baseline ("original yaml") = the `terrainAnalysis:` block of
+#   src/meta_packages/a2_ros/config/autonomy/navigation_a2.yaml
+# Each axis below is swept in the "reduce map noise / density" direction taken from
+#   tuning_guideline/CONFIG_TUNING_Terrain.md -> "Map is noisy or too dense":
+#     - Increase scanVoxelSize.
+#     - Increase minBlockPointNum.
+#     - Use useSorting=true and start with quantileZ 0.2..0.35.
+#     - Tighten minRelZ / maxRelZ, or lower disRatioZ.
+#
+# Every grid INCLUDES the baseline value so each axis has an in-sweep reference point.
+# gen_variants.py produces ONE variant yaml per (param, value), each a FULL copy of the
+# baseline terrainAnalysis block with only that one key changed (the value at the baseline
+# is emitted once as the shared `baseline` variant). Grids were bounded against the source
+# (terrainAnalysis.cpp) and vehicleHeight=0.5 so they never crop the ground or erase
+# real obstacles -- see README.md "Why these ranges".
+
+baseline_config: src/meta_packages/a2_ros/config/autonomy/navigation_a2.yaml
+node_namespace: terrainAnalysis        # top-level key the node reads (its hardcoded name)
+
+# param: [ grid values ]   (types must match the node's declare_parameter<T>:
+#                            minBlockPointNum is int; the rest are double)
+axes:
+  scanVoxelSize:    [0.10, 0.15, 0.20, 0.25, 0.30]    # increase  -> coarser leaf, fewer points
+  minBlockPointNum: [20, 30, 40, 50, 60]              # increase  -> reject sparse/noisy cells
+  quantileZ:        [0.20, 0.25, 0.30, 0.35]          # raise ground (useSorting stays true)
+  minRelZ:          [-1.0, -0.8, -0.6, -0.4, -0.3]    # tighten floor upward toward ground
+  maxRelZ:          [1.5, 1.2, 1.0, 0.8, 0.6]         # tighten ceiling down toward obstacle band
+  disRatioZ:        [0.20, 0.15, 0.10, 0.05, 0.00]    # lower far-range vertical widening

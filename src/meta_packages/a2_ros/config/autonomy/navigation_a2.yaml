@@ -68,9 +68,9 @@ localPlanner:
     pointPerPathThre:           3
     minRelZ:                    -0.5
     maxRelZ:                    1.2
-    maxSpeed:                   0.3 # reduce max speed
+    maxSpeed:                   0.5 # reduce max speed
     dirWeight:                  0.1
-    dirThre:                    90.0
+    dirThre:                    45.0
     dirToVehicle:               false
     pathScale:                  0.5
     minPathScale:               0.2
@@ -98,7 +98,7 @@ pathFollower:
     yawRateGain:        5.0
     stopYawRateGain:    4.0
     maxYawRate:         30.0
-    maxSpeed:           0.3 # reduce max speed
+    maxSpeed:           0.5 # reduce max speed
     maxAccel:           0.5 # reduce max acceleration
     switchTimeThre:     1.0
     dirDiffThre:        0.1

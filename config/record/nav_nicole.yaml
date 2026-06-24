@@ -1,0 +1,44 @@
+# Navigation-stack recording config (CMU autonomy: external/navigation_ext_ros2).
+#
+# Topics below are the actual publishers/subscribers of the nav stack
+# (terrain_analysis, terrain_analysis_ext, local_planner, visualization_tools),
+# plus the frame + final-command topics needed to replay the run visually.
+#
+# Usage:  a2 bag record -c config/record/nav.yaml nav_test
+# Replay: a2 bag play bag_<stamp>_nav_test --clock   (then RViz / a2 view_bag / Foxglove)
+#
+# Note: this stack uses /state_estimation (NOT /odom) for odometry, and the
+# path follower outputs /nav_vel (TwistStamped), which twist_mux merges into
+# /cmd_vel. This stack does not broadcast TF — /tf{,_static} come from the
+# sim bridge / DLIO and are required to place the clouds in their frames.
+topics:
+  # --- Inputs the nav stack consumes (the autonomy contract) ---
+  - /state_estimation        # nav_msgs/Odometry   — robot odometry
+  - /registered_scan         # PointCloud2         — world-frame lidar cloud
+
+  # --- Terrain maps (traversability) ---
+  - /terrain_map             # PointCloud2 (terrainAnalysis)     — local terrain
+  - /terrain_map_ext         # PointCloud2 (terrainAnalysisExt)  — global terrain
+
+  # --- Planner I/O ---
+  - /way_point               # PointStamped  — goal waypoint into localPlanner
+  - /path                    # nav_msgs/Path — selected local path
+  - /free_paths              # PointCloud2   — candidate paths (viz)
+  - /nav_vel                 # TwistStamped  — pathFollower velocity command
+  - /joy                     # sensor_msgs/Joy — manual override / waypoint tool
+
+  # --- visualization_tools outputs (maps + run metrics) ---
+  - /overall_map             # PointCloud2
+  - /explored_areas          # PointCloud2
+  - /trajectory              # PointCloud2
+  - /explored_volume         # Float32
+  - /traveling_distance      # Float32
+  - /time_duration           # Float32
+
+  # --- Final command + frames (from twist_mux / bridge, not nav_ext itself) ---
+  - /cmd_vel                 # TwistStamped — arbitrated velocity the robot ran
+  - /tf
+  - /tf_static
+
+  # --- Optional: uncomment when running far_planner (global goals) ---
+  # - /goal_point            # PointStamped — global goal into far_planner

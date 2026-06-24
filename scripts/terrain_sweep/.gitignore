@@ -1,0 +1,3 @@
+# Generated artifacts (configs, recordings, reports) -- the tool, not its outputs, is tracked.
+variants/
+runs/

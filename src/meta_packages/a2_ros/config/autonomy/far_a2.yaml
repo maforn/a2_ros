@@ -15,7 +15,7 @@ far_planner:
     is_pub_boundary: false
 
     # Contour detection
-    voxel_dim: 0.15          # increase to 0.3 if contours are noisy
+    voxel_dim: 0.10          # increase to 0.3 if contours are noisy
 
     # Goal
     g_planner/converge_distance: 0.5
