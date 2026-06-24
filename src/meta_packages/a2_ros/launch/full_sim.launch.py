@@ -72,14 +72,14 @@ def generate_launch_description():
         ),
         PopLaunchConfigurations(),
 
-        # # ---- Object detection (sim variant) ----
-        # PushLaunchConfigurations(),
-        # IncludeLaunchDescription(
-        #     PythonLaunchDescriptionSource(
-        #         os.path.join(detect_launch_dir, 'object_detection.launch.py')
-        #     ),
-        # ),
-        # PopLaunchConfigurations(),
+        # ---- Object detection (sim variant) ----
+        PushLaunchConfigurations(),
+        IncludeLaunchDescription(
+            PythonLaunchDescriptionSource(
+                os.path.join(detect_launch_dir, 'object_detection.launch.py')
+            ),
+        ),
+        PopLaunchConfigurations(),
 
         # ---- BT executor ----
         PushLaunchConfigurations(),

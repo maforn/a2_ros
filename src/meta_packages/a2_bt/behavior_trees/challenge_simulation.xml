@@ -1,0 +1,85 @@
+<root BTCPP_format="4">
+  <!--
+    Simulation exploration mission with object detection and home return.
+    Same flow as challenge.xml but adapted for sim:
+      - FSM boot sequence (stand → balance → walk)
+      - No save_map_node (RESPLE MapSaving not present in sim)
+      - Sit at the end
+
+    Flow:
+      1. SetMode 2/3/4           — boot FSM: stand → unlock → walk
+      2. CreatePose              — hardcode start position as {home_pose}
+      3. detection_mapper/start  — reset and start accumulating detections
+      4. StartExploration        — trigger ALO via /start_exploration
+      5. WaitForExplorationFinish — block until ALO reports done (or timeout)
+         (ForceSuccess absorbs timeout so the rest always runs)
+      6. StopExploration         — stop ALO waypoints
+      7. StopMovement            — halt pathFollower
+      8. detection_mapper/stop   — stop accumulating detections
+      9. detection_mapper/save_csv — persist detections to CSV
+      10. StopMovement(0)        — resume movement for far_planner
+      11. NavigateToPose         — return to {home_pose}
+      12. detection_mapper/save_csv (second call) — flush detections after nav
+      13. SetMode 1              — sit
+
+    Usage:
+      a2 bt --tree challenge_simulation
+  -->
+  <BehaviorTree ID="ChallengeSimulation">
+    <Sequence>
+
+      <!-- 1. Boot FSM: stand → balance stand → walk -->
+      <SetMode mode="2" wait_for_sec="3.0" />
+      <SetMode mode="3" wait_for_sec="3.0" />
+      <SetMode mode="4" wait_for_sec="1.0" />
+
+      <!-- 2. Hardcode home position -->
+      <CreatePose x="0.0" y="0.0" yaw="0.0" frame_id="map" pose="{home_pose}" />
+
+      <!-- 3. Reset detection accumulator and start collecting -->
+      <CallTriggerService service_name="detection_mapper/start" />
+
+      <!-- 4. Trigger ALO exploration -->
+      <StartExploration start_topic="/start_exploration" />
+
+      <!-- 5. Wait for exploration to finish or time out -->
+      <ForceSuccess>
+        <WaitForExplorationFinish
+          finish_topic="exploration_finish"
+          status_topic="bt/exploration_status"
+          timeout_sec="300.0" />
+      </ForceSuccess>
+
+      <!-- 6-7. Stop ALO waypoints and halt pathFollower -->
+      <StopExploration />
+      <StopMovement />
+
+      <!-- 8-9. Stop detection mapper and persist detections to CSV -->
+      <CallTriggerService service_name="detection_mapper/stop" />
+      <ForceSuccess>
+        <CallTriggerService service_name="detection_mapper/save_csv" />
+      </ForceSuccess>
+
+      <!-- 10. Resume movement so far_planner can drive the robot -->
+      <StopMovement data="0" />
+
+      <!-- 11. Return home. ForceSuccess absorbs nav failure. -->
+      <ForceSuccess>
+        <NavigateToPose
+          goal_pose="{home_pose}"
+          frame_id="map"
+          goal_topic="/goal_point"
+          timeout_sec="120.0" />
+      </ForceSuccess>
+
+      <!-- 12. Final CSV flush after navigation -->
+      <ForceSuccess>
+        <CallTriggerService service_name="detection_mapper/save_csv" />
+      </ForceSuccess>
+
+      <!-- 13. Sit -->
+      <SetMode mode="1" wait_for_sec="3.0" />
+
+    </Sequence>
+  </BehaviorTree>
+</root>
