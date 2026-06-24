@@ -97,7 +97,27 @@ def generate_launch_description():
                 ('/terrain_cloud',       '/terrain_map_ext'),
                 ('/scan_cloud',          '/registered_scan'),
                 ('/terrain_local_cloud', '/terrain_map'),
+                # far only publishes a boundary when navigating home; park its
+                # (empty) /navigation_boundary so it can't clobber the maze
+                # exploration boundary published by navigationBoundary below.
+                ('/navigation_boundary', '/far_navigation_boundary_unused'),
             ],
+        ),
+
+        # Confine TARE exploration to the maze interior: publishes a polygon on
+        # /navigation_boundary that TARE uses to reject viewpoints outside it,
+        # stopping the robot chasing unreachable frontiers at the floor edge.
+        Node(
+            package='tare_planner',
+            executable='navigationBoundary',
+            name='navigationBoundary',
+            output='screen',
+            parameters=[{
+                'boundary_file_dir': os.path.join(
+                    a2_ros_dir, 'config', 'autonomy', 'maze3_boundary.ply'),
+                'sendBoundary': True,
+                'sendBoundaryInterval': 2,
+            }],
         ),
 
         Node(

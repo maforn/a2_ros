@@ -17,11 +17,11 @@ tare_planner_node:
     pub_momentum_activation_count_topic_ : momentum_activation_count
 
     kAutoStart : true               # start exploring immediately without external trigger
-    kRushHome : false               # return to start when near home after exploration finishes
+    kRushHome : false               # return to start when near home after exploration finishes (off while debugging premature finish)
     kUseTerrainHeight : true        # use terrain map height for terrain-aware planning
     kCheckTerrainCollision : true   # reject terrain points above kTerrainCollisionThreshold as obstacles
     kExtendWayPoint : true          # extend lookahead waypoint further if it is within extend distance
-    kUseLineOfSightLookAheadPoint : true  # require line-of-sight to lookahead point; pick alternative if blocked
+    kUseLineOfSightLookAheadPoint : false # require line-of-sight to lookahead point (false: commit to path through occluded doorways instead of picking a backward visible point)
     kNoExplorationReturnHome : false      # return to start when exploration is complete
     kExtendWayPointDistanceBig : 4.0     # extension distance when waypoint has line-of-sight (m)
     kExtendWayPointDistanceSmall : 2.5   # extension distance when waypoint does not have line-of-sight (m)
@@ -29,7 +29,7 @@ tare_planner_node:
     kRushHomeDist : 10.0            # distance to home below which rush-home activates (m)
     kAtHomeDistThreshold : 0.5      # distance to consider robot arrived at home (m)
     kTerrainCollisionThreshold : 0.3     # terrain point intensity above this is treated as a collision obstacle
-    kLookAheadDistance : 5.0        # distance ahead on path to project lookahead waypoint (m)
+    kLookAheadDistance : 2.5        # distance ahead on path to project lookahead waypoint (m) — shortened so lookahead lands at the doorway, not past it inside the room
     kUseMomentum : false            # bias waypoint selection toward previous travel direction
     kDirectionChangeCounterThr : 6       # consecutive direction changes before momentum switch triggers
     kDirectionNoChangeCounterThr : 5     # steps without direction change before stuck detection triggers
@@ -38,7 +38,7 @@ tare_planner_node:
     # PlanningEnv
     kUseFrontier : true                       # enable frontier-based exploration
     kFrontierClusterTolerance : 1.0           # max distance to merge frontier points into one cluster (m)
-    kFrontierClusterMinSize : 20              # min points in a frontier cluster to keep it
+    kFrontierClusterMinSize : 8               # min points in a frontier cluster to keep it (lowered for maze doorways)
     kUseCoverageBoundaryOnFrontier : false    # clip frontiers to coverage boundary polygon
     kUseCoverageBoundaryOnObjectSurface : false  # clip keypose cloud to coverage boundary polygon
 
@@ -66,12 +66,12 @@ tare_planner_node:
     keypose_graph/kAddEdgeToLastKeyposeDistThr : 2.0 # max distance to connect node to last keypose (m)
     keypose_graph/kAddEdgeVerticalThreshold : 0.5    # max vertical gap for a valid graph edge (m)
     keypose_graph/kAddEdgeCollisionCheckResolution : 0.3  # step size for edge collision checks (m)
-    keypose_graph/kAddEdgeCollisionCheckRadius : 0.3      # sphere radius for edge collision checks (m)
+    keypose_graph/kAddEdgeCollisionCheckRadius : 0.2      # sphere radius for edge collision checks (m) — lowered to A2 half-width so edges can thread narrow doorways
     keypose_graph/kAddEdgeCollisionCheckPointNumThr : 1   # collision points needed to reject an edge
 
     # ViewPointManager — grid of candidate sensor poses for coverage planning
-    viewpoint_manager/number_x : 10    # viewpoint grid cells in X
-    viewpoint_manager/number_y : 10    # viewpoint grid cells in Y
+    viewpoint_manager/number_x : 16    # viewpoint grid cells in X (widened local horizon to ~13 m for maze)
+    viewpoint_manager/number_y : 16    # viewpoint grid cells in Y (widened local horizon to ~13 m for maze)
     viewpoint_manager/number_z : 1     # viewpoint grid cells in Z (1 = 2-D planning)
     viewpoint_manager/resolution_x : 0.8  # viewpoint cell size X (m)
     viewpoint_manager/resolution_y : 0.8  # viewpoint cell size Y (m)
@@ -79,34 +79,34 @@ tare_planner_node:
     kConnectivityHeightDiffThr : 0.25     # max height difference for two viewpoints to be connected (m)
     kGreedyViewPointSampleRange : 3       # candidates sampled per greedy selection step
     kLocalPathOptimizationItrMax : 10     # TSP optimization iterations for local path ordering
-    kViewPointCollisionMargin : 0.3       # XY safety margin around each viewpoint for collision (m) — ~A2 half-width
+    kViewPointCollisionMargin : 0.2       # XY safety margin around each viewpoint for collision (m) — A2 half-width, lets viewpoints sit in narrow doorways
     kViewPointCollisionMarginZPlus : 0.4  # upward Z margin for viewpoint collision check (m)
     kViewPointCollisionMarginZMinus : 0.3 # downward Z margin for viewpoint collision check (m)
     kCollisionGridZScale : 1.0            # Z scale factor applied to collision grid
     kCollisionGridResolutionX : 0.2       # collision grid cell size X (m)
     kCollisionGridResolutionY : 0.2       # collision grid cell size Y (m)
     kCollisionGridResolutionZ : 0.0       # collision grid cell size Z (m)
-    kCollisionPointThr : 1                # min collision points in a cell to mark viewpoint in collision
+    kCollisionPointThr : 2                # min collision points in a cell to mark viewpoint in collision (raised: 1 = single noise point blocked viewpoints)
     kLineOfSightStopAtNearestObstacle : true          # stop line-of-sight ray at first hit rather than end point
     kViewPointHeightFromTerrain : 0.5                 # viewpoint height above terrain — matches A2 sensor height (m)
     kViewPointHeightFromTerrainChangeThreshold : 0.4  # terrain height change needed to update viewpoint height (m)
     kCheckDynamicObstacleCollision : false  # check collision against recent obstacle frames (for dynamic envs)
     kCollisionFrameCountMax : 3             # history frames used for dynamic obstacle collision check
 
-    kSensorRange : 10.0          # max range used for coverage calculations — matches lidar cutoff (m)
+    kSensorRange : 2.0           # max range used for coverage calculations (low: robot must get within ~2 m of every surface, forcing it to enter and sweep each room — needed to image wall-mounted objects like a clock picture)
     kNeighborRange : 2.5         # search radius for viewpoint connectivity (m)
-    kCoverageOcclusionThr : 0.3  # distance threshold for occlusion in coverage calculation (m)
-    kCoverageDilationRadius : 0.8  # dilation radius applied to covered area (m)
+    kCoverageOcclusionThr : 0.1  # distance threshold for occlusion in coverage calc (m) — stricter: don't credit room interiors only glimpsed through a doorway, forcing physical entry
+    kCoverageDilationRadius : 0.2  # dilation radius applied to covered area (m) — lowered further (0.8->0.4->0.2) to require denser inspection
 
     # Grid World — coarse global map tracking exploration state per cell
     kGridWorldXNum : 121          # global grid cells in X (total X = XNum * CellHeight)
     kGridWorldYNum : 121          # global grid cells in Y
     kGridWorldZNum : 1            # global grid cells in Z (1 = flat/ground-level only)
     kGridWorldCellHeight : 1.5    # size of each global grid cell (m)
-    kGridWorldNearbyGridNum : 5   # nearby cells considered for local search
-    kMinAddPointNumSmall : 20     # min new coverage points for a minor coverage increment
-    kMinAddPointNumBig : 40       # min new coverage points for a significant coverage increment
-    kMinAddFrontierPointNum : 10  # min points for a frontier cell to remain active
+    kGridWorldNearbyGridNum : 11  # nearby cells considered for local search (extended global reach to ~28 m)
+    kMinAddPointNumSmall : 40     # min new coverage points for a minor coverage increment (raised: stop dawdling on small local gains, progress toward big unexplored rooms)
+    kMinAddPointNumBig : 80       # min new coverage points for a significant coverage increment (raised to match)
+    kMinAddFrontierPointNum : 5   # min points for a frontier cell to remain active (lowered for maze doorways)
     kCellExploringToCoveredThr : 1    # coverage count to transition cell: exploring → covered
     kCellCoveredToExploringThr : 10   # coverage count drop to revert cell: covered → exploring
     kCellExploringToAlmostCoveredThr : 10   # coverage count for exploring → almost-covered
