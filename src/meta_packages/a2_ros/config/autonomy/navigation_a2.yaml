@@ -1,6 +1,6 @@
 terrainAnalysis:
   ros__parameters:
-    scanVoxelSize:          0.1
+    scanVoxelSize:          0.2
     decayTime:              10.0
     noDecayDis:             0.0
     clearingDis:            8.0
@@ -8,7 +8,7 @@ terrainAnalysis:
     quantileZ:              0.25
     considerDrop:           true
     limitGroundLift:        true
-    maxGroundLift:          0.25
+    maxGroundLift:          0.15
     clearDyObs:             false
     minDyObsDis:            0.3
     minDyObsAngle:          0.0
@@ -20,7 +20,7 @@ terrainAnalysis:
     noDataObstacle:         false
     noDataBlockSkipNum:     0
     minBlockPointNum:       20
-    vehicleHeight:          0.5
+    vehicleHeight:          1.5
     voxelPointUpdateThre:   100
     voxelTimeUpdateThre:    2.0
     minRelZ:                -1.0
@@ -29,15 +29,15 @@ terrainAnalysis:
 
 terrainAnalysisExt:
   ros__parameters:
-    scanVoxelSize:          0.1
+    scanVoxelSize:          0.20
     decayTime:              10.0
     noDecayDis:             0.0
     clearingDis:            30.0
     useSorting:             true
-    quantileZ:              0.25
-    vehicleHeight:          0.5
-    voxelPointUpdateThre:   10
-    voxelTimeUpdateThre:    2.0
+    quantileZ:              0.2
+    vehicleHeight:          1.5
+    voxelPointUpdateThre:   100
+    voxelTimeUpdateThre:    4.0
     lowerBoundZ:            -1.0
     upperBoundZ:            1.5
     disRatioZ:              0.1
@@ -72,9 +72,9 @@ localPlanner:
     dirWeight:                  0.1
     dirThre:                    90.0
     dirToVehicle:               false
-    pathScale:                  1.0
-    minPathScale:               0.75
-    pathScaleStep:              0.25
+    pathScale:                  0.5
+    minPathScale:               0.2
+    pathScaleStep:              0.1
     pathScaleBySpeed:           true
     minPathRange:               1.0
     pathRangeStep:              0.5
@@ -94,12 +94,12 @@ pathFollower:
     sensorOffsetY:      0.0
     pubSkipNum:         1
     twoWayDrive:        false
-    lookAheadDis:       0.4
+    lookAheadDis:       0.8
     yawRateGain:        5.0
     stopYawRateGain:    4.0
     maxYawRate:         30.0
     maxSpeed:           0.3 # reduce max speed
-    maxAccel:           1.0 # reduce max acceleration
+    maxAccel:           0.5 # reduce max acceleration
     switchTimeThre:     1.0
     dirDiffThre:        0.1
     stopDisThre:        0.3
