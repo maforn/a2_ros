@@ -70,9 +70,9 @@ localPlanner:
     maxRelZ:                    1.2
     maxSpeed:                   0.3 # reduce max speed
     dirWeight:                  0.1
-    dirThre:                    90.0
+    dirThre:                    45.0
     dirToVehicle:               false
-    pathScale:                  0.5
+    pathScale:                  1.0
     minPathScale:               0.2
     pathScaleStep:              0.1
     pathScaleBySpeed:           true
