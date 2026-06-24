@@ -6,7 +6,7 @@ alo:
     grid_half_width:  40.0    # m each side → 534×534 cells
 
     # ── Lidar input ──────────────────────────────────────────────────────────
-    lidar_topic:  /registered_scan  # world-frame cloud from registered_scan_pub
+    lidar_topic:  /alo/scan  # raw /front_lidar/points transformed to map frame (full resolution)
     voxel_size:   0.05              # m — voxel applied AFTER range+FOV filter
 
     # ── Ground segmentation (Z-band relative to robot body centre) ────────

@@ -54,8 +54,11 @@ def generate_launch_description():
                               description='Exploration planner: "tare" or "alo"'),
         SetParameter(name='use_sim_time', value=LaunchConfiguration('use_sim_time')),
 
-        # Transforms /front_lidar/points → /registered_scan (world/map frame)
-        # using TF. Required when DLIO is not running.
+        # Transforms raw /front_lidar/points → /alo/scan (map frame, no voxel filter).
+        # Publishes to /alo/scan (not /registered_scan) so RESPLE's downsampled
+        # /registered_scan stays intact for FAR planner and terrain analysis.
+        # tf_lag_sec=0.30: 300ms past the scan timestamp — safely behind the ~200ms
+        # TF lag observed from RESPLE on the real robot.
         Node(
             package='a2_utils',
             executable='registered_scan_pub',
@@ -64,8 +67,9 @@ def generate_launch_description():
             parameters=[{
                 'input_topic':  '/front_lidar/points',
                 'target_frame': 'map',
-                'tf_lag_sec':   0.25,
+                'tf_lag_sec':   0.30,
             }],
+            remappings=[('/registered_scan', '/alo/scan')],
         ),
 
         Node(
