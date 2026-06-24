@@ -70,10 +70,10 @@ def generate_launch_description():
                 os.path.join(a2_ros_launch_dir, 'navigate_and_explore.launch.py')
             ),
             launch_arguments={
-                'use_sim_time': 'false',
-                'rviz':         LaunchConfiguration('rviz'),
-                'planner':      'alo',
-                'tf_lag_sec':   '0.40',
+                'use_sim_time':  'false',
+                'rviz':          LaunchConfiguration('rviz'),
+                'planner':       'alo',
+                'resple_scan':   'true',
             }.items(),
         ),
         PopLaunchConfigurations(),
