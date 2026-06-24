@@ -224,7 +224,7 @@ def generate_launch_description():
         # ---- ALO exploration planner (planner:=alo) ----
         Node(
             package='a2_ros',
-            executable='alo.py',
+            executable='alo',
             name='alo',
             output='screen',
             parameters=[alo_config],

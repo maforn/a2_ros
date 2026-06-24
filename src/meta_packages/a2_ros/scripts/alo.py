@@ -26,7 +26,6 @@ Topics
 """
 
 import math
-import struct
 import time
 import numpy as np
 from scipy.ndimage import label as nd_label, binary_dilation
@@ -173,42 +172,87 @@ class FrontierExplorer(Node):
         foff = {f.name: f.offset for f in msg.fields}
         if not all(k in foff for k in ('x', 'y', 'z')):
             return
+
         xo, yo, zo = foff['x'], foff['y'], foff['z']
         ps    = msg.point_step
         n_pts = msg.width * msg.height
-        raw   = bytes(msg.data)
+
+        # Parse ALL points at once with numpy — no struct loop, no step=16 skip.
+        # Reshape to (n_pts, point_step) byte matrix; slice each field and reinterpret.
+        raw = np.frombuffer(bytes(msg.data), dtype=np.uint8).reshape(n_pts, ps)
+        px = np.ascontiguousarray(raw[:, xo:xo+4]).view(np.float32).ravel()
+        py = np.ascontiguousarray(raw[:, yo:yo+4]).view(np.float32).ravel()
+        pz = np.ascontiguousarray(raw[:, zo:zo+4]).view(np.float32).ravel()
+
         rx, ry, rz = float(self.robot_xy[0]), float(self.robot_xy[1]), float(self.robot_z)
+
+        # Height + validity filter (vectorised)
+        dz    = pz - rz
+        valid = (np.isfinite(px) & np.isfinite(py) & np.isfinite(pz)
+                 & (dz >= self.z_lo) & (dz <= self.z_hi))
+        px, py = px[valid], py[valid]
+
+        dx, dy  = px - rx, py - ry
+        dist2   = dx*dx + dy*dy
+        far     = dist2 >= 0.0025          # drop points < 5 cm from robot
+        dx, dy, dist2, px, py = dx[far], dy[far], dist2[far], px[far], py[far]
+        dist    = np.sqrt(dist2)
+
+        if self.fov_half is not None:
+            az  = np.arctan2(dy, dx)
+            rel = (az - self.robot_yaw + math.pi) % (2.0 * math.pi) - math.pi
+            ok  = np.abs(rel) <= self.fov_half
+            dx, dy, dist, px, py = dx[ok], dy[ok], dist[ok], px[ok], py[ok]
+
+        if len(dist) == 0:
+            return
+
+        is_occ = dist <= self.ray_max
+
+        # Angular bucketing at 0.5° resolution.
+        # For each bin we keep ONE representative ray:
+        #   - OCC: the closest obstacle hit at any vertical angle (most conservative)
+        #   - FREE: the farthest clip point (clears the most space)
+        # OCC always overrides FREE within the same bin.
+        # This correctly accumulates data from all 128 vertical scan lines without
+        # redundant Bresenham work — each unique direction contributes exactly once.
+        _BIN_RAD = math.radians(0.5)
+        az_all   = np.arctan2(dy, dx)
+        bins     = np.floor(az_all / _BIN_RAD).astype(np.int64)
+
+        # best[bin] = (target_x, target_y, is_occ, dist)
+        best: dict = {}
+        for i in range(len(bins)):
+            b   = int(bins[i])
+            d   = float(dist[i])
+            occ = bool(is_occ[i])
+            cur = best.get(b)
+            if cur is None:
+                replace = True
+            elif occ and not cur[2]:
+                replace = True          # OCC beats FREE
+            elif occ and cur[2] and d < cur[3]:
+                replace = True          # closer OCC hit
+            elif not occ and not cur[2] and d > cur[3]:
+                replace = True          # farther FREE-end clears more space
+            else:
+                replace = False
+            if replace:
+                if occ:
+                    tx, ty = float(px[i]), float(py[i])
+                else:
+                    s  = self.ray_max / d
+                    tx = rx + float(dx[i]) * s
+                    ty = ry + float(dy[i]) * s
+                best[b] = (tx, ty, occ, d)
+
         rob_gx = (rx - self.origin[0]) / self.res
         rob_gy = (ry - self.origin[1]) / self.res
+        for tx, ty, occ, _ in best.values():
+            tgx = (tx - self.origin[0]) / self.res
+            tgy = (ty - self.origin[1]) / self.res
+            self._mark_ray(rob_gx, rob_gy, tgx, tgy, occ)
 
-        for i in range(0, n_pts, 16):
-            base = i * ps
-            px = struct.unpack_from('f', raw, base + xo)[0]
-            py = struct.unpack_from('f', raw, base + yo)[0]
-            pz = struct.unpack_from('f', raw, base + zo)[0]
-            if not (np.isfinite(px) and np.isfinite(py) and np.isfinite(pz)):
-                continue
-            dz = pz - rz
-            if not (self.z_lo <= dz <= self.z_hi):
-                continue
-            dx, dy = px - rx, py - ry
-            dist   = (dx*dx + dy*dy) ** 0.5
-            if dist < 0.05:
-                continue
-            if self.fov_half is not None:
-                az = math.atan2(dy, dx)
-                rel = (az - self.robot_yaw + math.pi) % (2.0 * math.pi) - math.pi
-                if abs(rel) > self.fov_half:
-                    continue
-            is_occ = dist <= self.ray_max
-            if not is_occ:
-                s = self.ray_max / dist
-                px, py = rx + dx*s, ry + dy*s
-            tgx = (px - self.origin[0]) / self.res
-            tgy = (py - self.origin[1]) / self.res
-            self._mark_ray(rob_gx, rob_gy, tgx, tgy, is_occ)
-
-        # Stamp robot footprint FREE so the LiDAR blind-spot never creates frontiers
         self._clear_footprint(rob_gx, rob_gy)
 
     def _mark_ray(self, x0, y0, x1, y1, occ_end: bool):

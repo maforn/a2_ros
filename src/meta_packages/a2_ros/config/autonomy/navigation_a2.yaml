@@ -49,42 +49,57 @@ terrainAnalysisExt:
 
 localPlanner:
   ros__parameters:
-    vehicleLength:              0.65
-    vehicleWidth:               0.40
+    # ── Robot footprint (actual A2 body: ~0.55 x 0.32 m) ─────────────────
+    # Smaller footprint = planner commits through tighter gaps.
+    vehicleLength:              0.55
+    vehicleWidth:               0.33
     sensorOffsetX:              0.0
     sensorOffsetY:              0.0
     twoWayDrive:                false
+
+    # ── Obstacle detection ────────────────────────────────────────────────
     laserVoxelSize:             0.05
     terrainVoxelSize:           0.2
     useTerrainAnalysis:         true
     checkObstacle:              true
-    checkRotObstacle:           true
-    adjacentRange:              3.5
+    checkRotObstacle:           false   # do NOT block in-place rotation near walls
+    adjacentRange:              2.0     # check obstacles only 2 m ahead — door frame not alarming from far
     obstacleHeightThre:         0.15
     groundHeightThre:           0.1
     costHeightThre:             0.1
     costScore:                  0.02
     useCost:                    false
-    pointPerPathThre:           4     # needs more obstacle points to declare a path blocked — less door-frame blocking
+    # Door frames produce ~3-6 terrain points along the optimal path.
+    # Raise this so a couple of door-frame edge returns don't block the only viable path.
+    pointPerPathThre:           6
+
+    # ── Z range for obstacle classification ───────────────────────────────
     minRelZ:                    -0.5
     maxRelZ:                    1.2
+
+    # ── Speed ─────────────────────────────────────────────────────────────
     maxSpeed:                   0.3
-    dirWeight:                  0.02
-    dirThre:                    60.0  # tighter cone — stops hunting sideways when forward is tight
+    autonomyMode:               true
+    autonomySpeed:              1.0
+    joyToSpeedDelay:            2.0
+    joyToCheckObstacleDelay:    5.0
+
+    # ── Path selection ────────────────────────────────────────────────────
+    # dirThre: how far off the goal heading a candidate path can be.
+    # Too wide (90°) → planner happily picks sideways "go around door" paths.
+    # 65° keeps it committed toward the goal while still allowing corner arcs.
+    dirWeight:                  0.04    # penalise off-goal paths a bit more
+    dirThre:                    65.0    # committed forward, not roaming sideways
     dirToVehicle:               false
     pathScale:                  1.0
-    minPathScale:               0.3   # try down to 30 % scale — commits harder through 0.6 m doors
+    minPathScale:               0.20    # squeeze path to 20% to fit tight doorways
     pathScaleStep:              0.05
     pathScaleBySpeed:           true
     minPathRange:               1.0
     pathRangeStep:              0.5
     pathRangeBySpeed:           true
     pathCropByGoal:             true
-    autonomyMode:               true
-    autonomySpeed:              1.0
-    joyToSpeedDelay:            2.0
-    joyToCheckObstacleDelay:    5.0
-    goalClearRange:             0.2   # stop closer to goal so the robot commits to passing the door
+    goalClearRange:             0.2
     goalX:                      0.0
     goalY:                      0.0
 
@@ -94,14 +109,14 @@ pathFollower:
     sensorOffsetY:      0.0
     pubSkipNum:         1
     twoWayDrive:        false
-    lookAheadDis:       0.4
-    yawRateGain:        5.0
-    stopYawRateGain:    4.0
-    maxYawRate:         30.0
-    maxSpeed:           0.3 # reduce max speed
-    maxAccel:           1.0 # reduce max acceleration
+    lookAheadDis:       0.5     # slightly longer lookahead smooths corner arcs
+    yawRateGain:        7.0     # more responsive turning at corners (was 5.0)
+    stopYawRateGain:    5.0
+    maxYawRate:         45.0    # allow faster yaw to commit around corners (was 30°/s)
+    maxSpeed:           0.3
+    maxAccel:           1.0
     switchTimeThre:     1.0
-    dirDiffThre:        0.1
+    dirDiffThre:        0.15    # tolerate slightly larger heading error before stopping
     stopDisThre:        0.3
     slowDwnDisThre:     0.6
     useInclRateToSlow:  false

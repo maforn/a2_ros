@@ -54,6 +54,20 @@ def generate_launch_description():
                               description='Exploration planner: "tare" or "alo"'),
         SetParameter(name='use_sim_time', value=LaunchConfiguration('use_sim_time')),
 
+        # Transforms /front_lidar/points → /registered_scan (world/map frame)
+        # using TF. Required when DLIO is not running.
+        Node(
+            package='a2_utils',
+            executable='registered_scan_pub',
+            name='registered_scan_pub',
+            output='screen',
+            parameters=[{
+                'input_topic':  '/front_lidar/points',
+                'target_frame': 'map',
+                'tf_lag_sec':   0.025,
+            }],
+        ),
+
         Node(
             package='terrain_analysis',
             executable='terrainAnalysis',
@@ -99,7 +113,7 @@ def generate_launch_description():
         # ---- ALO exploration planner (planner:=alo) ----
         Node(
             package='a2_ros',
-            executable='alo.py',
+            executable='alo',
             name='alo',
             output='screen',
             parameters=[alo_config],

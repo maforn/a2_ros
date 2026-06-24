@@ -21,6 +21,8 @@ find_package(nav_msgs REQUIRED)
 find_package(tf2 REQUIRED)
 find_package(tf2_ros REQUIRED)
 find_package(a2_interfaces REQUIRED)
+find_package(visualization_msgs REQUIRED)
+find_package(Eigen3 REQUIRED)
 
 # stand_example node (low-level stand/sit transitions)
 add_executable(stand_example
@@ -76,12 +78,25 @@ ament_target_dependencies(sim_lidar_adapter
   sensor_msgs
 )
 
+# ── ALO: C++ frontier explorer with Z-band ground filter ─────────────────────
+add_executable(alo src/alo.cpp)
+target_compile_features(alo PRIVATE cxx_std_17)
+ament_target_dependencies(alo
+  rclcpp
+  std_msgs
+  geometry_msgs
+  sensor_msgs
+  nav_msgs
+  visualization_msgs
+)
+
 install(TARGETS
   stand_example
   teleop_joy
   nav_vel_relay
   scan_pose_sync
   sim_lidar_adapter
+  alo
   DESTINATION lib/${PROJECT_NAME}
 )
 
