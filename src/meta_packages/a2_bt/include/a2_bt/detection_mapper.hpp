@@ -42,7 +42,7 @@ struct DetectedObject
  * Services:
  *   ~/start    (std_srvs/Trigger) — enable detection accumulation, clears list
  *   ~/stop     (std_srvs/Trigger) — disable accumulation (keeps stored objects)
- *   ~/save_csv (std_srvs/Trigger) — write current list to CSV (id,class,x,y,z)
+ *   ~/save_csv (std_srvs/Trigger) — write current list to CSV (id,class,x,y,z,confidence)
  *
  * Parameters:
  *   detection_topic  (string, default: /detection_info)

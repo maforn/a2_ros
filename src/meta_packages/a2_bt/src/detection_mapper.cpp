@@ -112,13 +112,14 @@ DetectionMapperNode::DetectionMapperNode(const rclcpp::NodeOptions & options)
         return;
       }
 
-      f << "id,class,x,y,z\n";
+      f << "id,class,x,y,z,confidence\n";
       for (const auto & obj : snapshot) {
         f << obj.id << ","
           << obj.class_id << ","
           << obj.position.x << ","
           << obj.position.y << ","
-          << obj.position.z << "\n";
+          << obj.position.z << ","
+          << obj.best_confidence << "\n";
       }
 
       RCLCPP_INFO(get_logger(),

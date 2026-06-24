@@ -98,6 +98,12 @@ COPY --chown=$USER:$USER . .
 USER root
 RUN chmod +x /a2_ros/scripts/a2 && \
     ln -sf /a2_ros/scripts/a2 /usr/local/bin/a2
+
+# uv — used to run standalone scripts (e.g. scripts/post_process.py) with their
+# own pinned deps, without touching the ROS venv at /opt/venv. Copied straight
+# from astral's official multi-arch image rather than the curl installer so the
+# build doesn't depend on network script execution.
+COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /usr/local/bin/
 USER $USER
 
 ################################################################################
