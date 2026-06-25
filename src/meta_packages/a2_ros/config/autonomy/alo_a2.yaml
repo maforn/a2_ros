@@ -59,7 +59,7 @@ alo:
 
     # ── Timers ───────────────────────────────────────────────────────────
     planning_hz:      1.0     # Hz — replanning rate
-    wp_publish_hz:    2.0     # Hz — keeps FAR planner fed
+    wp_publish_hz:    0.5     # Hz — reduced from 2.0; goal is stable so no need to spam FAR planner
     viz_hz:           1.0     # Hz — RViz map/marker publish rate
 
     # ── Completion detection ──────────────────────────────────────────────

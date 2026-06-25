@@ -19,9 +19,10 @@ far_planner:
 
     # Goal
     g_planner/converge_distance: 0.3   # arrive closer so the robot commits to passing through the door
+    g_planner/goal_adjust_radius: 1.0  # reduced from 2.0 so adjusted goal stays close to ALO waypoint
 
     # Dynamic obstacle decay
     util/dynamic_obs_dacay_time: 2.0
-    g_planner/path_momentum_thred: 2 
+    g_planner/path_momentum_thred: 5   # increased from 2 (default 3) to reduce path switching
 
     util/terrain_free_Z: 0.2
