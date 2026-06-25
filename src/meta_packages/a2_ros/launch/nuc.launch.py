@@ -45,7 +45,7 @@ def generate_launch_description():
     lidar_config_arg = DeclareLaunchArgument(
         'lidar_config',
         default_value='config_front.yaml',
-        description='Hesai config filename (relative to hesai_ros_driver/config/)'
+        description='Hesai config filename (relative to a2_ros/config/ — override configs live here)'
     )
 
     a2_ros_dir = get_package_share_directory('a2_ros')
@@ -70,14 +70,13 @@ def generate_launch_description():
         )
     )
 
-    hesai_dir = get_package_share_directory('hesai_ros_driver')
     lidar_node = Node(
         namespace='hesai_ros_driver',
         package='hesai_ros_driver',
         executable='hesai_ros_driver_node',
         output='log',
         parameters=[{
-            'config_path': PathJoinSubstitution([hesai_dir, 'config', LaunchConfiguration('lidar_config')])
+            'config_path': PathJoinSubstitution([a2_ros_dir, 'config', LaunchConfiguration('lidar_config')])
         }],
     )
 
