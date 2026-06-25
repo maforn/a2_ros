@@ -20,6 +20,7 @@
 #include "a2_bt/save_pose.hpp"
 #include "a2_bt/stop_movement.hpp"
 #include "a2_bt/stop_exploration.hpp"
+#include "a2_bt/offset_pose.hpp"
 
 class A2BtExecutor : public BT::TreeExecutionServer
 {
@@ -50,6 +51,7 @@ protected:
     factory.registerNodeType<a2_bt::SavePose>("SavePose", params);
     factory.registerNodeType<a2_bt::StopMovement>("StopMovement", params);
     factory.registerNodeType<a2_bt::StopExploration>("StopExploration", params);
+    factory.registerNodeType<a2_bt::OffsetPose>("OffsetPose");
   }
 
   // If payload is a filename, resolve it against the hardcoded trees directory

@@ -9,21 +9,22 @@
     Flow:
       1. SetMode 2/3/4           — boot FSM: stand → unlock → walk
       2. SavePose                — capture robot's current pose from /state_estimation as {home_pose}
-      3. detection_mapper/start  — reset and start accumulating detections
-      4. StartExploration        — trigger ALO via /start_exploration
-      5. WaitForExplorationFinish — block until ALO reports done (or timeout)
+      3. OffsetPose + NavigateToPose — move 1 m forward from start position
+      4. detection_mapper/start  — reset and start accumulating detections
+      5. StartExploration        — trigger ALO via /start_exploration
+      6. WaitForExplorationFinish — block until ALO reports done (or timeout)
          (ForceSuccess absorbs timeout so the rest always runs)
-      6. StopExploration         — stop ALO waypoints
-      7. StopMovement            — halt pathFollower
-      8. detection_mapper/stop   — stop accumulating detections
-      9. detection_mapper/save_csv — persist detections to CSV
-      10. StopMovement(0)        — resume movement for far_planner
-      11. NavigateToPose         — return to {home_pose}
-      12. detection_mapper/save_csv (second call) — flush detections after nav
-      13. SetMode 1              — sit
+      7. StopExploration         — stop ALO waypoints
+      8. StopMovement            — halt pathFollower
+      9. detection_mapper/stop   — stop accumulating detections
+      10. detection_mapper/save_csv — persist detections to CSV
+      11. StopMovement(0)        — resume movement for far_planner
+      12. NavigateToPose         — return to {home_pose}
+      13. detection_mapper/save_csv (second call) — flush detections after nav
+      14. SetMode 1              — sit
 
     Usage:
-      a2 bt --tree challenge_simulation
+      a2 bt tree challenge_simulation
   -->
   <BehaviorTree ID="ChallengeSimulation">
     <Sequence>
@@ -36,10 +37,18 @@
       <!-- 2. Capture current pose from /state_estimation as home position -->
       <SavePose pose="{home_pose}" />
 
-      <!-- 3. Reset detection accumulator and start collecting -->
+      <!-- 3. Move 1 m forward from start position -->
+      <OffsetPose input_pose="{home_pose}" distance_x="1.0" output_pose="{forward_pose}" />
+      <NavigateToPose
+        goal_pose="{forward_pose}"
+        frame_id="map"
+        goal_topic="/goal_point"
+        timeout_sec="30.0" />
+
+      <!-- 5. Reset detection accumulator and start collecting -->
       <CallTriggerService service_name="detection_mapper/start" />
 
-      <!-- 4. Trigger ALO exploration -->
+      <!-- 6. Trigger ALO exploration -->
       <StartExploration start_topic="/start_exploration" />
 
       <!-- 5. Wait for exploration to finish or time out -->

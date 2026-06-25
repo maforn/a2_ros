@@ -72,6 +72,7 @@ bt_plugin(a2_bt_is_exploration_finished_plugin     plugins/is_exploration_finish
 bt_plugin(a2_bt_save_pose_plugin                   plugins/save_pose.cpp)
 bt_plugin(a2_bt_stop_movement_plugin               plugins/stop_movement.cpp)
 bt_plugin(a2_bt_stop_exploration_plugin            plugins/stop_exploration.cpp)
+bt_plugin(a2_bt_offset_pose_plugin                 plugins/offset_pose.cpp)
 
 # ── Standalone nodes ──────────────────────────────────────────────────────────
 add_executable(detection_mapper src/detection_mapper.cpp)
@@ -101,6 +102,7 @@ target_link_libraries(bt_executor
   a2_bt_save_pose_plugin
   a2_bt_stop_movement_plugin
   a2_bt_stop_exploration_plugin
+  a2_bt_offset_pose_plugin
 )
 
 install(TARGETS
@@ -119,6 +121,7 @@ install(TARGETS
   a2_bt_save_pose_plugin
   a2_bt_stop_movement_plugin
   a2_bt_stop_exploration_plugin
+  a2_bt_offset_pose_plugin
   bt_executor
   ARCHIVE DESTINATION lib
   LIBRARY DESTINATION lib

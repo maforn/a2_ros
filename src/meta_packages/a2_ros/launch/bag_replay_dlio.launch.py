@@ -1,17 +1,17 @@
 """
-Replay a real-robot rosbag through RESPLE + ALO planning stack.
+Replay a real-robot rosbag through DLIO + ALO planning stack.
 
-Plays back raw lidar + IMU from the bag, runs RESPLE to recompute odometry
-and the map frame, then feeds the result into the full navigation/exploration
-stack (terrain_analysis, far_planner, local_planner, ALO).
+Plays back raw lidar + IMU from the bag, runs DLIO to recompute odometry,
+then feeds the result into the full navigation/exploration stack
+(terrain_analysis, far_planner, local_planner, ALO).
 
-Dynamic /tf from the bag is excluded so it doesn't conflict with RESPLE's
+Dynamic /tf from the bag is excluded so it doesn't conflict with DLIO's
 freshly-computed transforms. /tf_static is kept (static robot-model links).
 
 Usage:
-  ros2 launch a2_ros bag_replay.launch.py bag:=/path/to/bag
-  ros2 launch a2_ros bag_replay.launch.py bag:=my_run  # resolves under $ROS_BAGS_DIR
-  ros2 launch a2_ros bag_replay.launch.py bag:=/path/to/bag rviz:=true rate:=0.5
+  ros2 launch a2_ros bag_replay_dlio.launch.py bag:=/path/to/bag
+  ros2 launch a2_ros bag_replay_dlio.launch.py bag:=my_run  # resolves under $ROS_BAGS_DIR
+  ros2 launch a2_ros bag_replay_dlio.launch.py bag:=/path/to/bag rviz:=true rate:=0.5
 """
 
 import os
@@ -48,8 +48,8 @@ def play_bag_setup(context, *args, **kwargs):
 
     cmd = ['ros2', 'bag', 'play', resolved_path, '--clock']
 
-    # Exclude /tf: RESPLE will recompute it fresh; the bag's recorded /tf
-    # (world→body from the original run) would conflict with the new instance.
+    # Exclude /tf: DLIO will recompute it fresh; the bag's recorded /tf
+    # (map→body from the original run) would conflict with the new instance.
     # /tf_static is kept so static robot-model links are available.
     cmd += ['--exclude-topics', '/tf']
 
@@ -61,23 +61,23 @@ def play_bag_setup(context, *args, **kwargs):
 
 
 def generate_launch_description():
-    description_dir  = get_package_share_directory('a2_description')
-    a2_ros_dir       = get_package_share_directory('a2_ros')
+    description_dir   = get_package_share_directory('a2_description')
+    a2_ros_dir        = get_package_share_directory('a2_ros')
     a2_ros_launch_dir = os.path.join(a2_ros_dir, 'launch')
-    urdf_path        = os.path.join(description_dir, 'urdf', 'a2.urdf')
-    rviz_path        = os.path.join(a2_ros_dir, 'rviz', 'exploration.rviz')
+    urdf_path         = os.path.join(description_dir, 'urdf', 'a2.urdf')
+    rviz_path         = os.path.join(a2_ros_dir, 'rviz', 'exploration.rviz')
 
     return LaunchDescription([
-        DeclareLaunchArgument('bag',        default_value='',
+        DeclareLaunchArgument('bag',  default_value='',
                               description='Bag path or name under $ROS_BAGS_DIR'),
-        DeclareLaunchArgument('rviz',       default_value='true'),
-        DeclareLaunchArgument('rate',       default_value='1.0',
+        DeclareLaunchArgument('rviz', default_value='true'),
+        DeclareLaunchArgument('rate', default_value='1.0',
                               description='Playback rate (0.5 = half speed)'),
+
         # All nodes use bag time published by ros2 bag play --clock.
         SetParameter(name='use_sim_time', value=True),
 
         # Robot model: publishes static joint TFs (base_link → links).
-        # Safe to run alongside the bag's /tf_static — same transforms, both latched.
         Node(
             package='robot_state_publisher',
             executable='robot_state_publisher',
@@ -89,22 +89,21 @@ def generate_launch_description():
             }],
         ),
 
-        # ── RESPLE: recompute odometry + map from raw lidar + IMU ───────────
+        # ── DLIO: recompute odometry from raw lidar + IMU ───────────────────
+        # IMU calibration is auto-disabled when use_sim_time=true (dlio.launch.py).
         PushLaunchConfigurations(),
         IncludeLaunchDescription(
             PythonLaunchDescriptionSource(
-                os.path.join(a2_ros_launch_dir, 'resple.launch.py')
+                os.path.join(a2_ros_launch_dir, 'dlio.launch.py')
             ),
             launch_arguments={
-                'use_sim_time':    'true',
-                'rviz':            'false',
-                'map_saving_node': 'true',
+                'use_sim_time': 'true',
+                'rviz':         'false',
             }.items(),
         ),
         PopLaunchConfigurations(),
 
         # ── ALO + terrain_analysis + far_planner + local_planner ────────────
-        # tf_lag_sec=0.25: RESPLE still has ~200ms processing lag even on bag data.
         PushLaunchConfigurations(),
         IncludeLaunchDescription(
             PythonLaunchDescriptionSource(

@@ -26,7 +26,15 @@
       <!-- 1. Capture current pose from /state_estimation as home position -->
       <SavePose pose="{home_pose}" />
 
-      <!-- 2. Reset detection accumulator and start collecting -->
+      <!-- 2. Move 1 m forward from start position -->
+      <!-- <OffsetPose input_pose="{home_pose}" distance_x="1.0" distance_y="0.0" output_pose="{forward_pose}" />
+      <NavigateToPose
+        goal_pose="{forward_pose}"
+        frame_id="map"
+        goal_topic="/goal_point"
+        timeout_sec="30.0" /> -->
+
+      <!-- 3. Reset detection accumulator and start collecting -->
       <CallTriggerService service_name="detection_mapper/start" />
 
       <!-- 3. Trigger ALO exploration -->
