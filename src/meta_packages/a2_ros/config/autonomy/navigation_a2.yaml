@@ -81,7 +81,7 @@ localPlanner:
     pathRangeBySpeed:           true
     pathCropByGoal:             true
     autonomyMode:               true
-    autonomySpeed:              1.0
+    autonomySpeed:              0.5
     joyToSpeedDelay:            2.0
     joyToCheckObstacleDelay:    5.0
     goalClearRange:             0.4
@@ -116,5 +116,5 @@ pathFollower:
     noRotAtStop:        false
     noRotAtGoal:        true
     autonomyMode:       true
-    autonomySpeed:      1.0
+    autonomySpeed:      0.5
     joyToSpeedDelay:    2.0
