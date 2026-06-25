@@ -52,7 +52,7 @@ localPlanner:
     # ── Robot footprint (actual A2 body: ~0.55 x 0.32 m) ─────────────────
     # Smaller footprint = planner commits through tighter gaps.
     vehicleLength:              0.55
-    vehicleWidth:               0.33
+    vehicleWidth:               0.50
     sensorOffsetX:              0.0
     sensorOffsetY:              0.0
     twoWayDrive:                false

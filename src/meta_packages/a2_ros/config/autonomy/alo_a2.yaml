@@ -48,7 +48,9 @@ alo:
     # ── Waypoint logic ────────────────────────────────────────────────────
     reach_dist:        1.0    # m — waypoint considered reached
     min_wp_dist:       1.2    # m — minimum advance per waypoint
-    wp_timeout:       30.0    # s — blacklist if not reached in time
+    wp_timeout:       30.0    # s — trigger blacklist if waypoint not reached in time
+    blacklist_radius:  1.5    # m — skip clusters within this radius of a timed-out waypoint
+    blacklist_ttl:   120.0    # s — blacklist entry expires after this (0 = permanent)
 
     # ── Robot footprint & navigation clearance ────────────────────────────
     robot_clear_radius:  0.4   # m — stamped FREE each tick

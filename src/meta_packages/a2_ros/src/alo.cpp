@@ -86,8 +86,10 @@ public:
     clear_r_     = declare_parameter("robot_clear_radius",      0.55);
     nav_clr_     = declare_parameter("nav_clearance",            0.2);
     min_nav_clr_ = declare_parameter("min_nav_clearance",        0.1);
-    wp_tmo_    = declare_parameter("wp_timeout",          30.0);
-    done_tmo_  = declare_parameter("done_timeout",         8.0);
+    wp_tmo_      = declare_parameter("wp_timeout",          30.0);
+    done_tmo_    = declare_parameter("done_timeout",         8.0);
+    bl_radius_   = declare_parameter("blacklist_radius",     1.5);  // m — clusters within this radius of a timed-out wp are skipped
+    bl_ttl_      = declare_parameter("blacklist_ttl",       120.0); // s — blacklist entry expires after this long
     hit_decay_   = declare_parameter("occ_hit_decay",        0.95);
     occ_thresh_      = declare_parameter("occ_hit_threshold",    3);
     occ_min_nb_      = declare_parameter("occ_min_neighbors",    1);
@@ -602,18 +604,37 @@ private:
       } else if (wp_set_t_) {
         const double elapsed = std::chrono::duration<double>(now - *wp_set_t_).count();
         if (elapsed > wp_tmo_) {
-          RCLCPP_WARN(get_logger(), "Timeout %.0f s — skipping (%.1f,%.1f), replanning",
-                      wp_tmo_, current_wp_->x, current_wp_->y);
+          RCLCPP_WARN(get_logger(), "Timeout %.0f s — blacklisting (%.1f,%.1f) for %.0f s",
+                      wp_tmo_, current_wp_->x, current_wp_->y, bl_ttl_);
+          blacklist_.push_back({current_wp_->x, current_wp_->y, now});
           current_wp_.reset(); wp_set_t_.reset();
         }
       }
     }
     if (current_wp_) return;
 
+    // Prune expired blacklist entries
+    blacklist_.erase(std::remove_if(blacklist_.begin(), blacklist_.end(),
+      [&](const BlacklistEntry &e) {
+        return std::chrono::duration<double>(now - e.t).count() > bl_ttl_;
+      }), blacklist_.end());
+
     auto fronts   = findFrontiers();
     viz_fronts_   = fronts;
     auto reach    = reachMask(rob_r, rob_c);
     auto clusters = clusterFrontiers(fronts, reach);
+
+    // Remove clusters whose centroid is too close to a blacklisted waypoint
+    if (!blacklist_.empty()) {
+      clusters.erase(std::remove_if(clusters.begin(), clusters.end(),
+        [&](const Cluster &cl) {
+          auto cw = g2w(int(cl.cent_r), int(cl.cent_c));
+          for (const auto &e : blacklist_) {
+            if (std::hypot(cw.x - e.x, cw.y - e.y) < bl_radius_) return true;
+          }
+          return false;
+        }), clusters.end());
+    }
 
     if (clusters.empty()) {
       if (!no_front_t_) {
@@ -755,6 +776,10 @@ private:
 
   double res_, half_w_, z_max_rel_, z_max_abs_, ray_max_, fov_half_;
   double reach_d_, min_wp_d_, clear_r_, nav_clr_, min_nav_clr_, wp_tmo_, done_tmo_, hit_decay_;
+  double bl_radius_, bl_ttl_;
+
+  struct BlacklistEntry { float x, y; TimePoint t; };
+  std::vector<BlacklistEntry> blacklist_;
   double gs_z_min_, gs_z_max_, voxel_size_;
   std::string lidar_topic_;
   int    occ_thresh_, occ_min_nb_, min_cluster_cells_, n_;
